@@ -1,0 +1,53 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcards</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>Flashcards</h1>
+      <div class="score-board">
+        <span id="score-text">Score: 0 / 0</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="progress-bar">
+        <div id="progress-fill"></div>
+      </div>
+
+      <div class="card-container" id="card-container">
+        <div class="card" id="flashcard">
+          <div class="card-face card-front">
+            <span class="card-label">QUESTION</span>
+            <p id="card-question">Loading...</p>
+            <span class="tap-hint">Tap to flip</span>
+          </div>
+          <div class="card-face card-back">
+            <span class="card-label">ANSWER</span>
+            <p id="card-answer">Loading...</p>
+            <span class="tap-hint">Tap to flip back</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons" id="action-buttons">
+        <button id="btn-incorrect" class="btn btn-danger">Incorrect ✗</button>
+        <button id="btn-correct" class="btn btn-success">Correct ✓</button>
+      </div>
+
+      <div class="control-buttons">
+        <button id="btn-shuffle" class="btn btn-secondary">Shuffle Deck</button>
+        <button id="btn-reset" class="btn btn-outline">Reset Progress</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
