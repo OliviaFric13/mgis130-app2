@@ -1,23 +1,42 @@
-// Multi-Course State Management stored in localStorage
-let appData = JSON.parse(localStorage.getItem('mycourses_multicourse_tracker')) || {
-    activeCourseId: "course_1",
+// LocalStorage State Management
+let appData = JSON.parse(localStorage.getItem('courseclear_data')) || {
+    activeCourseId: null,
     courses: [
         {
             id: "course_1",
             name: "MGIS 130",
+            theme: "theme-pink",
             categories: [
                 { id: "cat1", name: "Homework", weight: 30 },
                 { id: "cat2", name: "Quizzes", weight: 30 },
                 { id: "cat3", name: "Exams", weight: 40 }
             ],
             assignments: []
+        },
+        {
+            id: "course_2",
+            name: "MGMT 340",
+            theme: "theme-purple",
+            categories: [
+                { id: "cat1", name: "Deliverables", weight: 50 },
+                { id: "cat2", name: "Exams", weight: 50 }
+            ],
+            assignments: []
         }
     ]
 };
 
+// Available Themes Palette List
+const availableThemes = ["theme-pink", "theme-purple", "theme-teal", "theme-yellow", "theme-indigo"];
+
 // DOM Elements
-const courseTabsContainer = document.getElementById('course-tabs');
-const newCourseBtn = document.getElementById('new-course-btn');
+const homeView = document.getElementById('home-view');
+const courseDetailView = document.getElementById('course-detail-view');
+const coursesGrid = document.getElementById('courses-grid');
+const addCourseMainBtn = document.getElementById('add-course-main-btn');
+const backToHomeBtn = document.getElementById('back-to-home-btn');
+const themeSelector = document.getElementById('theme-selector');
+
 const courseNameInput = document.getElementById('course-name-input');
 const saveCourseBtn = document.getElementById('save-course-btn');
 const deleteCourseBtn = document.getElementById('delete-course-btn');
@@ -39,18 +58,22 @@ document.addEventListener('DOMContentLoaded', () => {
     renderApp();
 });
 
-// Switch Active Course Tab
-window.switchCourse = function(courseId) {
-    appData.activeCourseId = courseId;
+// View Navigation: Open Home
+backToHomeBtn.addEventListener('click', () => {
+    appData.activeCourseId = null;
+    document.body.className = "theme-pink"; // Reset home view to default pink
     saveAndRender();
-};
+});
 
-// Add New Course
-newCourseBtn.addEventListener('click', () => {
+// Add Course
+addCourseMainBtn.addEventListener('click', () => {
     const newId = 'course_' + Date.now();
+    const assignedTheme = availableThemes[appData.courses.length % availableThemes.length];
+    
     const newCourse = {
         id: newId,
         name: "New Course " + (appData.courses.length + 1),
+        theme: assignedTheme,
         categories: [],
         assignments: []
     };
@@ -59,7 +82,23 @@ newCourseBtn.addEventListener('click', () => {
     saveAndRender();
 });
 
-// Update Current Course Name
+// Select Course Detail View
+window.openCourseDetail = function(courseId) {
+    appData.activeCourseId = courseId;
+    saveAndRender();
+};
+
+// Theme Selector Changed
+themeSelector.addEventListener('change', (e) => {
+    const currentCourse = getCurrentCourse();
+    if (currentCourse) {
+        currentCourse.theme = e.target.value;
+        document.body.className = currentCourse.theme;
+        saveAndRender();
+    }
+});
+
+// Update Course Name
 saveCourseBtn.addEventListener('click', () => {
     const currentCourse = getCurrentCourse();
     if (!currentCourse) return;
@@ -70,20 +109,17 @@ saveCourseBtn.addEventListener('click', () => {
     }
 });
 
-// Delete Current Course
+// Delete Course
 deleteCourseBtn.addEventListener('click', () => {
-    if (appData.courses.length <= 1) {
-        alert("You must keep at least one course!");
-        return;
-    }
-    if (confirm("Are you sure you want to delete this course and all its data?")) {
+    if (confirm("Are you sure you want to delete this course?")) {
         appData.courses = appData.courses.filter(c => c.id !== appData.activeCourseId);
-        appData.activeCourseId = appData.courses[0].id;
+        appData.activeCourseId = null;
+        document.body.className = "theme-pink";
         saveAndRender();
     }
 });
 
-// Quick Syllabus Importer (Parses text looking for percentages)
+// Quick Syllabus Importer
 parseSyllabusBtn.addEventListener('click', () => {
     const text = syllabusTextInput.value.trim();
     if (!text) {
@@ -92,15 +128,12 @@ parseSyllabusBtn.addEventListener('click', () => {
     }
 
     const currentCourse = getCurrentCourse();
-    // Regex to find patterns like "Exams: 40%" or "Homework 30"
     const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
     let match;
     let newCategories = [];
 
     while ((match = regex.exec(text)) !== null) {
-        let catName = match[1].trim();
-        // Clean up common trailing words
-        catName = catName.replace(/worth|weight|grade/gi, '').trim();
+        let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
         let catWeight = parseFloat(match[2]);
         if (catName && !isNaN(catWeight)) {
             newCategories.push({
@@ -115,9 +148,9 @@ parseSyllabusBtn.addEventListener('click', () => {
         currentCourse.categories = newCategories;
         syllabusTextInput.value = '';
         saveAndRender();
-        alert("Successfully parsed and updated syllabus categories!");
+        alert("Successfully parsed syllabus categories!");
     } else {
-        alert("Could not automatically detect categories and percentages. Make sure your text includes percentages like 'Exams 40%' or 'Homework: 30%'.");
+        alert("Could not detect categories. Include percentages like 'Exams 40%' or 'Homework: 30%'.");
     }
 });
 
@@ -130,12 +163,7 @@ categoryForm.addEventListener('submit', (e) => {
 
     if (!name || isNaN(weight)) return;
 
-    currentCourse.categories.push({
-        id: 'cat_' + Date.now(),
-        name,
-        weight
-    });
-
+    currentCourse.categories.push({ id: 'cat_' + Date.now(), name, weight });
     catNameInput.value = '';
     catWeightInput.value = '';
     saveAndRender();
@@ -160,14 +188,7 @@ assignmentForm.addEventListener('submit', (e) => {
 
     if (!name || !categoryId || isNaN(earned) || isNaN(possible) || possible <= 0) return;
 
-    currentCourse.assignments.push({
-        id: 'assign_' + Date.now(),
-        name,
-        categoryId,
-        earned,
-        possible
-    });
-
+    currentCourse.assignments.push({ id: 'assign_' + Date.now(), name, categoryId, earned, possible });
     assignmentForm.reset();
     saveAndRender();
 });
@@ -182,52 +203,77 @@ window.deleteAssignment = function(id) {
 // Reset Current Course Data
 clearDataBtn.addEventListener('click', () => {
     const currentCourse = getCurrentCourse();
-    if (confirm("Are you sure you want to reset categories and assignments for this course?")) {
+    if (confirm("Reset categories and assignments for this course?")) {
         currentCourse.categories = [];
         currentCourse.assignments = [];
         saveAndRender();
     }
 });
 
-// Helper to get active course object
 function getCurrentCourse() {
-    let course = appData.courses.find(c => c.id === appData.activeCourseId);
-    if (!course && appData.courses.length > 0) {
-        appData.activeCourseId = appData.courses[0].id;
-        course = appData.courses[0];
-    }
-    return course;
+    return appData.courses.find(c => c.id === appData.activeCourseId);
 }
 
-// Save and Render Pipeline
 function saveAndRender() {
-    localStorage.setItem('mycourses_multicourse_tracker', JSON.stringify(appData));
+    localStorage.setItem('courseclear_data', JSON.stringify(appData));
     renderApp();
 }
 
-// Main Render & Calculation Logic
+// Main Render Logic
 function renderApp() {
+    if (!appData.activeCourseId) {
+        // VIEW 1: HOME GRID
+        homeView.classList.remove('hidden');
+        courseDetailView.classList.add('hidden');
+        renderHomeDashboard();
+    } else {
+        // VIEW 2: COURSE DETAIL
+        homeView.classList.add('hidden');
+        courseDetailView.classList.remove('hidden');
+        renderCourseDetail();
+    }
+}
+
+// Render Home View
+function renderHomeDashboard() {
+    coursesGrid.innerHTML = '';
+    
+    appData.courses.forEach(course => {
+        const stats = calculateCourseGrade(course);
+        const tile = document.createElement('div');
+        tile.className = `course-card-tile ${course.theme || 'theme-pink'}`;
+        
+        const themeColors = {
+            'theme-pink': '#d63384',
+            'theme-purple': '#8a2be2',
+            'theme-teal': '#0d9488',
+            'theme-yellow': '#d97706',
+            'theme-indigo': '#4f46e5'
+        };
+        tile.style.setProperty('--card-accent', themeColors[course.theme] || '#d63384');
+
+        tile.onclick = () => openCourseDetail(course.id);
+        tile.innerHTML = `
+            <div class="course-card-title">${escapeHtml(course.name)}</div>
+            <div class="course-card-grade">
+                <span class="course-card-pct">${stats.pct}%</span>
+                <span class="course-card-letter">(${stats.letter})</span>
+            </div>
+        `;
+        coursesGrid.appendChild(tile);
+    });
+}
+
+// Render Course Detail View
+function renderCourseDetail() {
     const currentCourse = getCurrentCourse();
     if (!currentCourse) return;
 
-    // 1. Render Tabs
-    courseTabsContainer.innerHTML = '';
-    const tabsList = document.createElement('div');
-    tabsList.className = 'tabs-list';
-    appData.courses.forEach(course => {
-        const btn = document.createElement('button');
-        btn.className = `tab-btn ${course.id === appData.activeCourseId ? 'active' : ''}`;
-        btn.textContent = course.name;
-        btn.onclick = () => switchCourse(course.id);
-        tabsList.appendChild(btn);
-    });
-    courseTabsContainer.appendChild(tabsList);
-    courseTabsContainer.appendChild(newCourseBtn);
-
-    // Set input value for course name
+    document.body.className = currentCourse.theme || 'theme-pink';
+    themeSelector.value = currentCourse.theme || 'theme-pink';
     courseNameInput.value = currentCourse.name;
 
-    // 2. Render Categories & Check Total Weight
+    // Render Categories
     categoryListContainer.innerHTML = '';
     assignCategorySelect.innerHTML = '<option value="" disabled selected>Select category</option>';
 
@@ -246,39 +292,23 @@ function renderApp() {
         assignCategorySelect.appendChild(opt);
     });
 
-    if (totalWeight !== 100) {
-        weightWarning.textContent = `⚠️ Total category weight is ${totalWeight}%. It should equal 100% for accurate calculations!`;
-    } else {
-        weightWarning.textContent = '';
-    }
+    weightWarning.textContent = totalWeight !== 100 ? `⚠️ Total category weight is ${totalWeight}%. It should equal 100% for accurate calculations!` : '';
 
-    // 3. Render Assignments Table & Calculate Grades
+    // Render Assignments & Calculate Grade
     assignmentsTableBody.innerHTML = '';
     if (currentCourse.assignments.length === 0) {
-        assignmentsTableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty-message">No assignments logged yet. Add your scores above!</td>
-            </tr>
-        `;
+        assignmentsTableBody.innerHTML = `<tr><td colspan="5" class="empty-message">No assignments logged yet. Add your scores above!</td></tr>`;
         overallPercentageEl.textContent = '0.00%';
         overallLetterEl.textContent = '-';
         return;
     }
 
-    let categoryScores = {};
-    currentCourse.categories.forEach(cat => {
-        categoryScores[cat.id] = { earned: 0, possible: 0, weight: cat.weight };
-    });
-
+    const stats = calculateCourseGrade(currentCourse);
+    
     currentCourse.assignments.forEach(assign => {
         const cat = currentCourse.categories.find(c => c.id === assign.categoryId);
         const catName = cat ? cat.name : 'Unassigned';
         const assignPct = (assign.earned / assign.possible) * 100;
-
-        if (categoryScores[assign.categoryId]) {
-            categoryScores[assign.categoryId].earned += assign.earned;
-            categoryScores[assign.categoryId].possible += assign.possible;
-        }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -289,6 +319,25 @@ function renderApp() {
             <td><button class="btn-secondary-outline" style="padding: 0.2rem 0.5rem; height: auto;" onclick="deleteAssignment('${assign.id}')">Delete</button></td>
         `;
         assignmentsTableBody.appendChild(tr);
+    });
+
+    overallPercentageEl.textContent = stats.pct + '%';
+    overallLetterEl.textContent = stats.letter;
+}
+
+function calculateCourseGrade(course) {
+    if (course.assignments.length === 0) return { pct: '0.00', letter: '-' };
+
+    let categoryScores = {};
+    course.categories.forEach(cat => {
+        categoryScores[cat.id] = { earned: 0, possible: 0, weight: cat.weight };
+    });
+
+    course.assignments.forEach(assign => {
+        if (categoryScores[assign.categoryId]) {
+            categoryScores[assign.categoryId].earned += assign.earned;
+            categoryScores[assign.categoryId].possible += assign.possible;
+        }
     });
 
     let finalWeightedSum = 0;
@@ -304,9 +353,10 @@ function renderApp() {
     });
 
     let overallPercentage = activeWeightsTotal > 0 ? (finalWeightedSum / (activeWeightsTotal / 100)) : 0;
-
-    overallPercentageEl.textContent = overallPercentage.toFixed(2) + '%';
-    overallLetterEl.textContent = getLetterGrade(overallPercentage);
+    return {
+        pct: overallPercentage.toFixed(2),
+        letter: getLetterGrade(overallPercentage)
+    };
 }
 
 function getLetterGrade(pct) {
