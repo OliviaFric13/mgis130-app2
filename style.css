@@ -4,11 +4,45 @@
     box-sizing: border-box;
 }
 
-:root {
+/* ==========================================
+   Color Themes (CSS Variables)
+   ========================================== */
+body.theme-pink {
     --primary: #d63384;
     --primary-hover: #c22575;
     --primary-light: #f8d7da;
     --bg-color: #fcf8f9;
+}
+
+body.theme-purple {
+    --primary: #8a2be2;
+    --primary-hover: #7322bf;
+    --primary-light: #f0e5ff;
+    --bg-color: #f8f5fc;
+}
+
+body.theme-teal {
+    --primary: #0d9488;
+    --primary-hover: #0f766e;
+    --primary-light: #ccfbf1;
+    --bg-color: #f0fdfa;
+}
+
+body.theme-yellow {
+    --primary: #d97706;
+    --primary-hover: #b45309;
+    --primary-light: #fef3c7;
+    --bg-color: #fffbeb;
+}
+
+body.theme-indigo {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: #e0e7ff;
+    --bg-color: #f5f7ff;
+}
+
+:root {
     --card-bg: #ffffff;
     --text-main: #2d3748;
     --text-muted: #718096;
@@ -24,6 +58,7 @@ body {
     color: var(--text-main);
     line-height: 1.6;
     padding: 2rem 1rem;
+    transition: background-color 0.3s ease;
 }
 
 .app-container {
@@ -33,14 +68,15 @@ body {
 
 .app-header {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
-.app-header h1 {
-    font-size: 2.25rem;
-    color: var(--text-main);
-    margin-bottom: 0.5rem;
-    font-weight: 700;
+.brand-title {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 0.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .app-header p {
@@ -48,62 +84,121 @@ body {
     font-size: 1rem;
 }
 
-/* Course Tabs Bar */
-.course-tabs-container {
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================
+   Home Dashboard & Course Grid
+   ========================================== */
+.dashboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
-    background: var(--card-bg);
-    padding: 0.5rem;
-    border-radius: var(--radius);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
-    overflow-x: auto;
 }
 
-.tabs-list {
+.dashboard-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.25rem;
+}
+
+.course-card-tile {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 150px;
+    position: relative;
+    overflow: hidden;
+}
+
+.course-card-tile::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background-color: var(--card-accent, var(--primary));
+}
+
+.course-card-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+.course-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.course-card-grade {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.course-card-pct {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--card-accent, var(--primary));
+}
+
+.course-card-letter {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* ==========================================
+   Detail Navigation Bar
+   ========================================== */
+.detail-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.course-actions {
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
-.tab-btn {
-    background: transparent;
-    border: none;
-    padding: 0.5rem 1rem;
+.theme-label {
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-muted);
+}
+
+.theme-dropdown {
+    padding: 0.4rem 0.6rem;
     border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-
-.tab-btn.active {
-    background-color: var(--primary-light);
-    color: var(--primary);
-}
-
-.tab-btn:hover {
-    color: var(--primary);
-}
-
-.btn-outline {
-    background: transparent;
-    border: 1px dashed var(--primary);
-    color: var(--primary);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: #fff;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
 }
 
-.btn-outline:hover {
-    background: var(--primary-light);
-}
-
+/* ==========================================
+   Cards & Layouts
+   ========================================== */
 .card {
     background-color: var(--card-bg);
     border-radius: var(--radius);
@@ -160,12 +255,6 @@ body {
     font-size: 0.95rem;
 }
 
-.importer-row textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.15);
-}
-
 .form-group {
     display: flex;
     flex-direction: column;
@@ -188,13 +277,6 @@ body {
     color: var(--text-main);
 }
 
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.15);
-}
-
 .btn-primary {
     background-color: var(--primary);
     color: white;
@@ -206,7 +288,6 @@ body {
     cursor: pointer;
     transition: background-color 0.2s;
     height: 41px;
-    white-space: nowrap;
 }
 
 .btn-primary:hover {
@@ -222,11 +303,20 @@ body {
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
-    transition: background-color 0.2s;
 }
 
-.btn-secondary:hover {
-    background-color: #f1b0b7;
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-outline:hover {
+    background: var(--primary-light);
 }
 
 .btn-secondary-outline {
