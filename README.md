@@ -1,8 +1,8 @@
-# CourseClear — Course Grade Tracker
+# CourseClear — Course Grade & Goal Tracker
 
 **Tagline:** Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.
 
-CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It provides a home dashboard displaying all your enrolled courses, color-coded themes, automatic syllabus parsing, and real-time weighted grade calculations.
+CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It provides a home dashboard with tabbed navigation between **My Courses** and the **GPA & Goals Hub**, custom aesthetic color themes for each class, automatic syllabus text parsing, and real-time academic coaching insights.
 
 This project demonstrates the **Three-Layer Architecture** of information systems.
 
@@ -11,30 +11,32 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Multi-Course State Object:** Stores an overall application state containing an array of course objects (`id`, `name`, `theme`, `categories`, `assignments`).
-* **Persistence Layer:** Uses browser `localStorage` to save and load all user records formatted in JSON (`courseclear_data`).
-* **State Preservation:** Ensures all courses, assigned themes, categories, and assignment grades persist across reloads without needing an external database.
+* **Comprehensive State Model:** Stores an overarching application object (`courseclear_goals_data`) holding target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `theme`, `categories`, `assignments`).
+* **Persistence Layer:** Utilizes browser `localStorage` to save and load all user records and goal settings in JSON format.
+* **State Preservation:** Retains all course data, assignment grades, and customized themes across browser sessions without needing an external database.
 
 ### 2. Processing Layer (Business Logic)
-* **Regex Syllabus Importer:** Automatically extracts category names and percentage weights from raw text using regex pattern matching (`/([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g`).
-* **Weighted Average Engine:** Sums earned vs. possible assignment points per category and applies syllabus weights:
+* **Regex Syllabus Importer:** Automatically scans pasted syllabus text for grading breakdown percentages (e.g., `"Exams 40%"`, `"Homework: 30%"`) using regular expression matching and populates structured categories.
+* **Weighted Grade Formula:** Calculates live cumulative percentages by grouping assignments by category, summing points earned vs. possible, and weighting them against syllabus requirements:
   $$\text{Overall Grade \%} = \frac{\sum (\text{Category \%} \times \text{Category Weight})}{\sum \text{Active Weights}}$$
-* **RIT Letter Grade Mapping:** Converts live course percentages into standard letter grades (`A` through `F`).
+* **GPA & Goal Engine:** Computes current semester GPA using credit hour weights and contrasts it against your target GPA goal to generate automated on-track status alerts and catch-up insights.
+* **Letter Grade Mapping:** Converts percentages and grades into standard letter values and 4.0 scale quality points.
 
 ### 3. User Interface Layer (Presentation)
-* **Home Course Dashboard:** Grid layout showcasing all enrolled course tiles with real-time percentage badges.
-* **Custom Theme Engine:** Dynamic CSS class switching supporting distinct color palettes (Pink, Purple, Teal, Yellow, Indigo) for each course.
-* **Single-Page Navigation:** Smooth view toggling between the main course grid and individual course workspaces.
+* **Interactive Home Dashboard:** Switch effortlessly between your **Enrolled Courses** grid and the **GPA & Goals Hub**.
+* **Dynamic Theme Engine:** Applies distinct color palettes (Pink, Purple, Teal, Yellow, Indigo) customized per course tile and workspace view.
+* **Single-Page Navigation:** Smooth transitions between dashboard views and individual course detail pages without requiring page reloads.
 
 ---
 
 ## 🚀 Key Features
 
-* 🏠 **Home Course Dashboard:** View all enrolled courses at a glance with live percentages and letter grades.
-* 🎨 **Distinct Color Themes:** Customize each course with its own aesthetic color theme (Pink, Purple, Teal, Yellow, Indigo).
-* ⚡ **Syllabus Importer:** Paste syllabus breakdown text to auto-fill category weights instantly.
-* 📝 **Weighted Assignment Tracking:** Log points earned and possible under specific categories.
-* 💾 **Local Storage Persistence:** All data saves automatically in the browser.
+* 🏠 **Home Course Dashboard:** View all enrolled courses at a glance with live percentage and letter grade badges.
+* 🎯 **GPA Goals & Insights Hub:** Set a target semester GPA (e.g., 3.75), track your progress, and get actionable coaching insights on courses that need attention.
+* 🎨 **Distinct Color Themes:** Personalize each course with custom aesthetic color themes (Pink, Purple, Teal, Yellow, Indigo).
+* ⚡ **Quick Syllabus Importer:** Paste syllabus text to auto-fill category weights instantly.
+* 📝 **Weighted Assignment Tracking:** Log points earned and possible under specific grading categories.
+* 💾 **Local Storage Persistence:** All data saves automatically in your browser.
 
 ---
 
