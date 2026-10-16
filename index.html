@@ -3,74 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CourseClear — Course Grade & Goal Tracker</title>
+    <title>CourseClear — Grade & Goal Tracker</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-pink">
 
     <div class="app-container">
-        <!-- Header -->
+        <!-- App Header -->
         <header class="app-header">
-            <h1 id="app-title" class="brand-title">CourseClear</h1>
-            <p id="app-subtitle">Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.</p>
+            <h1 class="brand-title">CourseClear</h1>
+            <p>Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.</p>
         </header>
 
-        <!-- VIEW 1: HOME DASHBOARD (Courses & Goal Hub) -->
+        <!-- DASHBOARD VIEW -->
         <div id="home-view" class="view-section">
             <div class="dashboard-nav-tabs">
                 <button id="tab-courses-btn" class="dash-tab active">My Courses</button>
                 <button id="tab-goals-btn" class="dash-tab">🎯 GPA & Goals Hub</button>
             </div>
 
-            <!-- Sub-view A: Courses Grid -->
+            <!-- Courses Tab -->
             <div id="subview-courses" class="subview-content">
                 <div class="dashboard-header">
                     <h2>Enrolled Courses</h2>
                     <button id="add-course-main-btn" class="btn-primary">+ Add New Course</button>
                 </div>
-                <div id="courses-grid" class="courses-grid">
-                    <!-- Dynamically populated course cards -->
-                </div>
+                <div id="courses-grid" class="courses-grid"></div>
             </div>
 
-            <!-- Sub-view B: GPA Goals & Insights Hub -->
+            <!-- GPA Goals Tab -->
             <div id="subview-goals" class="subview-content hidden">
-                <div class="card goal-config-card">
+                <div class="card">
                     <h2>Semester Target Configuration</h2>
                     <div class="goal-config-grid">
-                        <div class="form-group">
-                            <label for="target-gpa-input">Target Semester GPA (out of 4.0)</label>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="target-gpa-input">Target Semester GPA (2.0 – 4.0)</label>
                             <input type="number" step="0.05" min="2.0" max="4.0" id="target-gpa-input" value="3.75">
                         </div>
-                        <button id="save-goal-btn" class="btn-primary" style="align-self: flex-end;">Save Target</button>
+                        <button id="save-goal-btn" class="btn-primary">Save Target</button>
                     </div>
                 </div>
 
-                <!-- Goal Summary Cards -->
-                <div class="summary-card" style="margin-bottom: 1.5rem;">
-                    <div class="metric highlight">
+                <div class="summary-card">
+                    <div class="metric">
                         <span class="metric-label">Current Estimated GPA</span>
                         <span id="current-est-gpa" class="metric-value">0.00</span>
                     </div>
                     <div class="metric" id="goal-status-metric">
                         <span class="metric-label">Goal Status</span>
-                        <span id="goal-status-text" class="metric-value" style="font-size: 1.5rem;">-</span>
+                        <span id="goal-status-text" class="metric-value" style="font-size: 1.4rem;">-</span>
                     </div>
                 </div>
 
-                <!-- Academic Insights & Catch-Up Advice -->
-                <div class="card">
+                <div class="card" style="margin-top: 1.5rem;">
                     <h2>Academic Insights & Action Plan</h2>
-                    <div id="insights-container" class="insights-list">
-                        <!-- Dynamic coaching insights -->
-                    </div>
+                    <div id="insights-container" class="insights-list"></div>
                 </div>
             </div>
         </div>
 
-        <!-- VIEW 2: COURSE DETAIL PAGE -->
+        <!-- COURSE DETAIL VIEW -->
         <div id="course-detail-view" class="view-section hidden">
-            <!-- Navigation Back Bar -->
             <div class="detail-nav-bar">
                 <button id="back-to-home-btn" class="btn-outline">← Back to Dashboard</button>
                 <div class="course-actions">
@@ -86,7 +79,6 @@
             </div>
 
             <main>
-                <!-- Course Management Card -->
                 <section class="card">
                     <h2>Course Info & Credits</h2>
                     <div class="course-setup-row">
@@ -95,13 +87,12 @@
                             <input type="text" id="course-name-input" placeholder="e.g., MGMT 340">
                         </div>
                         <div class="form-group" style="flex: 1;">
-                            <label for="course-credits-input">Credit Hours</label>
+                            <label for="course-credits-input">Credits</label>
                             <select id="course-credits-input">
                                 <option value="1">1 Credit</option>
                                 <option value="2">2 Credits</option>
                                 <option value="3" selected>3 Credits</option>
                                 <option value="4">4 Credits</option>
-                                <option value="5">5 Credits</option>
                             </select>
                         </div>
                         <button id="save-course-btn" class="btn-primary">Update</button>
@@ -109,8 +100,7 @@
                     </div>
                 </section>
 
-                <!-- Quick Syllabus Text Importer -->
-                <section class="card syllabus-importer-card">
+                <section class="card">
                     <h2>⚡ Quick Syllabus Importer</h2>
                     <p class="section-desc">Paste your syllabus grading breakdown text below (e.g., "Exams 40%, Homework 30%, Projects 30%") and click parse to set weights automatically.</p>
                     <div class="importer-row">
@@ -119,17 +109,16 @@
                     </div>
                 </section>
 
-                <!-- Category Weights Setup Card -->
                 <section class="card">
                     <h2>Syllabus Category Weights (Must total 100%)</h2>
                     <form id="category-form" class="category-form-grid">
                         <div class="form-group">
                             <label for="cat-name">Category Name</label>
-                            <input type="text" id="cat-name" placeholder="e.g., Exams, Homework" required>
+                            <input type="text" id="cat-name" placeholder="e.g., Exams" required>
                         </div>
                         <div class="form-group">
                             <label for="cat-weight">Weight (%)</label>
-                            <input type="number" id="cat-weight" min="1" max="100" placeholder="e.g., 40" required>
+                            <input type="number" id="cat-weight" min="1" max="100" placeholder="40" required>
                         </div>
                         <button type="submit" class="btn-primary">Add Category</button>
                     </form>
@@ -137,7 +126,6 @@
                     <p id="weight-warning" class="warning-text"></p>
                 </section>
 
-                <!-- Add Assignment Card -->
                 <section class="card">
                     <h2>Add Assignment Score</h2>
                     <form id="assignment-form" class="assignment-form-grid">
@@ -153,17 +141,16 @@
                         </div>
                         <div class="form-group">
                             <label for="assign-earned">Points Earned</label>
-                            <input type="number" step="0.1" id="assign-earned" placeholder="e.g., 45" required>
+                            <input type="number" step="0.1" id="assign-earned" placeholder="45" required>
                         </div>
                         <div class="form-group">
                             <label for="assign-possible">Points Possible</label>
-                            <input type="number" step="0.1" id="assign-possible" placeholder="e.g., 50" required>
+                            <input type="number" step="0.1" id="assign-possible" placeholder="50" required>
                         </div>
                         <button type="submit" class="btn-primary" style="grid-column: span 4;">Add Assignment</button>
                     </form>
                 </section>
 
-                <!-- Results Summary Dashboard -->
                 <section class="card summary-card">
                     <div class="metric highlight">
                         <span class="metric-label">Overall Percentage</span>
@@ -175,7 +162,6 @@
                     </div>
                 </section>
 
-                <!-- Assignments Table -->
                 <section class="card">
                     <div class="table-header">
                         <h2>Recorded Assignments</h2>
@@ -194,7 +180,7 @@
                             </thead>
                             <tbody id="assignments-table-body">
                                 <tr>
-                                    <td colspan="5" class="empty-message">No assignments logged yet. Add your scores above!</td>
+                                    <td colspan="5" class="empty-message">No assignments logged yet.</td>
                                 </tr>
                             </tbody>
                         </table>
