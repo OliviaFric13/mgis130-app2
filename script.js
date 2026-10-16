@@ -8,6 +8,7 @@ const defaultState = {
             id: "course_1",
             name: "MGIS 130",
             credits: 3,
+            targetGrade: 90,
             theme: "theme-pink",
             categories: [
                 { id: "cat1", name: "Homework", weight: 30 },
@@ -21,7 +22,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v4_data');
+    const raw = localStorage.getItem('courseclear_v5_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -37,10 +38,8 @@ const quotes = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Random quote
     document.getElementById('daily-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
     
-    // Check first-time user modal
     if (!appData.userName) {
         document.getElementById('welcome-modal').classList.remove('hidden');
     }
@@ -50,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function bindEvents() {
-    // Welcome setup modal
     document.getElementById('setup-save-btn').onclick = () => {
         const name = document.getElementById('setup-name-input').value.trim();
         if (name) {
@@ -62,19 +60,18 @@ function bindEvents() {
         }
     };
 
-    // Navigation
     document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
     document.getElementById('tab-goals-btn').onclick = () => { appData.activeTab = 'goals'; saveAndRender(); };
     document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
     document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-pink'; saveAndRender(); };
     
-    // Course Actions
     document.getElementById('add-course-main-btn').onclick = () => {
         const newId = 'course_' + Date.now();
         appData.courses.push({
             id: newId,
             name: "New Course " + (appData.courses.length + 1),
             credits: 3,
+            targetGrade: 90,
             theme: availableThemes[appData.courses.length % availableThemes.length],
             categories: [],
             assignments: []
@@ -88,6 +85,7 @@ function bindEvents() {
         if (!c) return;
         c.name = document.getElementById('course-name-input').value.trim() || c.name;
         c.credits = parseInt(document.getElementById('course-credits-input').value) || 3;
+        c.targetGrade = parseFloat(document.getElementById('course-target-input').value) || 90;
         saveAndRender();
     };
 
@@ -109,7 +107,6 @@ function bindEvents() {
         }
     };
 
-    // Goal Actions
     document.getElementById('save-goal-btn').onclick = () => {
         const val = parseFloat(document.getElementById('target-gpa-input').value);
         if (!isNaN(val) && val >= 2.0 && val <= 4.0) {
@@ -119,7 +116,6 @@ function bindEvents() {
         }
     };
 
-    // Export & Import JSON Backup
     document.getElementById('export-json-btn').onclick = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
         const downloadAnchor = document.createElement('a');
@@ -151,7 +147,6 @@ function bindEvents() {
         reader.readAsText(file);
     };
 
-    // Category Form
     document.getElementById('category-form').onsubmit = (e) => {
         e.preventDefault();
         const c = getCurrentCourse();
@@ -165,7 +160,6 @@ function bindEvents() {
         }
     };
 
-    // Assignment Form
     document.getElementById('assignment-form').onsubmit = (e) => {
         e.preventDefault();
         const c = getCurrentCourse();
@@ -179,14 +173,12 @@ function bindEvents() {
             document.getElementById('assignment-form').reset();
             saveAndRender();
 
-            // Trigger confetti if score is >= 100%
             if ((earned / possible) >= 1) {
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
         }
     };
 
-    // What-If Simulator listeners
     const simCategory = document.getElementById('sim-category');
     const simEarned = document.getElementById('sim-earned');
     const simPossible = document.getElementById('sim-possible');
@@ -195,7 +187,6 @@ function bindEvents() {
         el.oninput = updateSimulator;
     });
 
-    // Syllabus Parse
     document.getElementById('parse-syllabus-btn').onclick = () => {
         const text = document.getElementById('syllabus-text-input').value.trim();
         if (!text) return alert("Paste syllabus text first!");
@@ -237,7 +228,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v4_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v5_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -245,7 +236,6 @@ function renderApp() {
     const homeView = document.getElementById('home-view');
     const courseDetailView = document.getElementById('course-detail-view');
 
-    // Personalized greeting banner
     const greetingEl = document.getElementById('personalized-greeting');
     if (appData.userName) {
         greetingEl.textContent = `Welcome back, ${appData.userName}! Track your courses, semester goals, and stay on top of your grades.`;
@@ -255,7 +245,6 @@ function renderApp() {
         homeView.classList.remove('hidden');
         courseDetailView.classList.add('hidden');
         
-        // Tabs
         document.getElementById('tab-courses-btn').className = appData.activeTab === 'courses' ? 'dash-tab active' : 'dash-tab';
         document.getElementById('tab-goals-btn').className = appData.activeTab === 'goals' ? 'dash-tab active' : 'dash-tab';
         document.getElementById('tab-help-btn').className = appData.activeTab === 'help' ? 'dash-tab active' : 'dash-tab';
@@ -281,6 +270,7 @@ function renderHomeDashboard() {
 
     appData.courses.forEach(course => {
         const stats = calculateCourseGrade(course);
+        const target = course.targetGrade || 90;
         const tile = document.createElement('div');
         tile.className = `course-card-tile ${course.theme || 'theme-pink'}`;
         tile.style.setProperty('--card-accent', themeColors[course.theme] || '#d63384');
@@ -290,6 +280,7 @@ function renderHomeDashboard() {
             <div>
                 <div class="course-card-title">${escapeHtml(course.name)}</div>
                 <div class="course-card-credits">${course.credits} Credits</div>
+                <div class="course-card-target-tag">Target: ${target}%</div>
             </div>
             <div class="course-card-grade">
                 <span class="course-card-pct">${stats.pct}%</span>
@@ -342,14 +333,14 @@ function renderGoalsHub() {
 
     appData.courses.forEach(course => {
         const stats = calculateCourseGrade(course);
+        const target = course.targetGrade || 90;
         if (course.assignments.length > 0) {
-            const courseGpa = getGpaPoints(stats.letter);
-            const isBehind = courseGpa < appData.targetGpa;
+            const isBehind = parseFloat(stats.pct) < target;
             const div = document.createElement('div');
             div.className = `insight-item ${isBehind ? 'warning' : 'success'}`;
             div.innerHTML = `
-                <div class="insight-title">${isBehind ? 'Catch-Up Opportunity' : 'Exceeding Goal'}: ${escapeHtml(course.name)} (${stats.pct}%)</div>
-                <div class="insight-desc">${isBehind ? `Currently at a <strong>${stats.letter}</strong>. Focus on upcoming weighted deliverables to pull this grade toward your ${appData.targetGpa} goal.` : `Great job! Your <strong>${stats.letter}</strong> is supporting your${appData.targetGpa} GPA target.`}</div>
+                <div class="insight-title">${isBehind ? 'Catch-Up Opportunity' : 'Exceeding Target'}: ${escapeHtml(course.name)} (${stats.pct}% / Target: ${target}%)</div>
+                <div class="insight-desc">${isBehind ? `Currently sitting at <strong>${stats.pct}\% (${stats.letter})</strong>. Focus on high-weight deliverables in this class to bridge the gap to your target of ${target}%.` : `Awesome job! Your <strong>${stats.pct}\%</strong> exceeds your course target of${target}%.`}</div>
             `;
             container.appendChild(div);
         }
@@ -364,6 +355,10 @@ function renderCourseDetail() {
     document.getElementById('theme-selector').value = c.theme || 'theme-pink';
     document.getElementById('course-name-input').value = c.name;
     document.getElementById('course-credits-input').value = c.credits || 3;
+    document.getElementById('course-target-input').value = c.targetGrade || 90;
+
+    // Render Study Buddy Advisor
+    renderStudyBuddy(c);
 
     // Categories
     const catContainer = document.getElementById('category-list-container');
@@ -429,7 +424,62 @@ function renderCourseDetail() {
     updateSimulator();
 }
 
-// What-If Grade Simulator Logic
+// Render Study Buddy Advisor Action Plan
+function renderStudyBuddy(course) {
+    const container = document.getElementById('study-buddy-container');
+    const stats = calculateCourseGrade(course);
+    const target = course.targetGrade || 90;
+    const currentPct = parseFloat(stats.pct);
+
+    if (course.assignments.length === 0) {
+        container.innerHTML = `
+            <div class="study-buddy-box">
+                <div class="buddy-status">Status: Waiting for score inputs...</div>
+                <div class="buddy-advice">Add your first assignment score above so your Study Buddy can analyze your performance against your <strong>${target}%</strong> course goal!</div>
+            </div>
+        `;
+        return;
+    }
+
+    // Find lowest assignment score
+    let lowestAssign = null;
+    let lowestPct = 101;
+    course.assignments.forEach(a => {
+        let pct = (a.earned / a.possible) * 100;
+        if (pct < lowestPct) {
+            lowestPct = pct;
+            lowestAssign = a;
+        }
+    });
+
+    const isMeetingTarget = currentPct >= target;
+    const diff = (target - currentPct).toFixed(1);
+
+    let html = `
+        <div class="study-buddy-box">
+            <div class="buddy-status ${isMeetingTarget ? 'success' : 'warning'}">
+                ${isMeetingTarget ? `🟢 On Track! (+${(currentPct - target).toFixed(1)}% above target)` : `🟡 Behind Target (${diff}\% needed to reach${target}%)`}
+            </div>
+            <div class="buddy-advice">
+                ${isMeetingTarget 
+                    ? `Great job! Your current grade of <strong>${currentPct}\%</strong> is meeting your target of <strong>${target}%</strong>.` 
+                    : `Your current grade is <strong>${currentPct}%</strong>. To close the ${diff}\% gap to reach your <strong>${target}%</strong> goal, review your lowest-scoring work below.`}
+            </div>
+    `;
+
+    if (lowestAssign) {
+        const cat = course.categories.find(c => c.id === lowestAssign.categoryId);
+        html += `
+            <div class="buddy-tip">
+                🎯 <strong>Focus Area:</strong> Your lowest recorded assignment is <strong>${escapeHtml(lowestAssign.name)}</strong> (${lowestPct.toFixed(1)}% in ${cat ? escapeHtml(cat.name) : 'Category'}). Focus your study time on upcoming deliverables in this category!
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
 function updateSimulator() {
     const c = getCurrentCourse();
     if (!c) return;
@@ -444,7 +494,6 @@ function updateSimulator() {
         return;
     }
 
-    // Clone assignments and push simulated assignment
     let simAssignments = [...c.assignments, { categoryId: catId, earned, possible }];
     let simCourse = { ...c, assignments: simAssignments };
     let stats = calculateCourseGrade(simCourse);
