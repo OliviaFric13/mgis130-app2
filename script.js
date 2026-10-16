@@ -1,5 +1,5 @@
-// Clean Default Initial State
 const defaultState = {
+    userName: "",
     activeCourseId: null,
     targetGpa: 3.75,
     activeTab: 'courses',
@@ -15,25 +15,13 @@ const defaultState = {
                 { id: "cat3", name: "Exams", weight: 40 }
             ],
             assignments: []
-        },
-        {
-            id: "course_2",
-            name: "MGMT 340",
-            credits: 3,
-            theme: "theme-purple",
-            categories: [
-                { id: "cat1", name: "Deliverables", weight: 50 },
-                { id: "cat2", name: "Exams", weight: 50 }
-            ],
-            assignments: []
         }
     ]
 };
 
-// Safe Load & Corrupted Data Handler
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v3_data');
+    const raw = localStorage.getItem('courseclear_v4_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -41,16 +29,43 @@ try {
 }
 
 const availableThemes = ["theme-pink", "theme-purple", "theme-teal", "theme-yellow", "theme-indigo"];
+const quotes = [
+    "✨ 'Consistency is the DNA of academic success.'",
+    "🚀 'Small daily improvements lead to stunning results.'",
+    "💡 'Your future is created by what you do today, not tomorrow.'",
+    "🎯 'Focus on progress, not perfection.'"
+];
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Random quote
+    document.getElementById('daily-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+    
+    // Check first-time user modal
+    if (!appData.userName) {
+        document.getElementById('welcome-modal').classList.remove('hidden');
+    }
+
     bindEvents();
     renderApp();
 });
 
 function bindEvents() {
+    // Welcome setup modal
+    document.getElementById('setup-save-btn').onclick = () => {
+        const name = document.getElementById('setup-name-input').value.trim();
+        if (name) {
+            appData.userName = name;
+            document.getElementById('welcome-modal').classList.add('hidden');
+            saveAndRender();
+        } else {
+            alert("Please enter your name.");
+        }
+    };
+
     // Navigation
     document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
     document.getElementById('tab-goals-btn').onclick = () => { appData.activeTab = 'goals'; saveAndRender(); };
+    document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
     document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-pink'; saveAndRender(); };
     
     // Course Actions
@@ -104,6 +119,38 @@ function bindEvents() {
         }
     };
 
+    // Export & Import JSON Backup
+    document.getElementById('export-json-btn').onclick = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "courseclear_backup.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    };
+
+    document.getElementById('import-json-file').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const parsed = JSON.parse(evt.target.result);
+                if (parsed.courses && Array.isArray(parsed.courses)) {
+                    appData = parsed;
+                    saveAndRender();
+                    alert("Backup restored successfully!");
+                } else {
+                    alert("Invalid backup file format.");
+                }
+            } catch (err) {
+                alert("Error reading JSON file.");
+            }
+        };
+        reader.readAsText(file);
+    };
+
     // Category Form
     document.getElementById('category-form').onsubmit = (e) => {
         e.preventDefault();
@@ -131,8 +178,22 @@ function bindEvents() {
             c.assignments.push({ id: 'assign_' + Date.now(), name, categoryId, earned, possible });
             document.getElementById('assignment-form').reset();
             saveAndRender();
+
+            // Trigger confetti if score is >= 100%
+            if ((earned / possible) >= 1) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
         }
     };
+
+    // What-If Simulator listeners
+    const simCategory = document.getElementById('sim-category');
+    const simEarned = document.getElementById('sim-earned');
+    const simPossible = document.getElementById('sim-possible');
+
+    [simCategory, simEarned, simPossible].forEach(el => {
+        el.oninput = updateSimulator;
+    });
 
     // Syllabus Parse
     document.getElementById('parse-syllabus-btn').onclick = () => {
@@ -176,7 +237,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v3_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v4_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -184,23 +245,27 @@ function renderApp() {
     const homeView = document.getElementById('home-view');
     const courseDetailView = document.getElementById('course-detail-view');
 
+    // Personalized greeting banner
+    const greetingEl = document.getElementById('personalized-greeting');
+    if (appData.userName) {
+        greetingEl.textContent = `Welcome back, ${appData.userName}! Track your courses, semester goals, and stay on top of your grades.`;
+    }
+
     if (!appData.activeCourseId) {
         homeView.classList.remove('hidden');
         courseDetailView.classList.add('hidden');
         
-        if (appData.activeTab === 'courses') {
-            document.getElementById('tab-courses-btn').className = 'dash-tab active';
-            document.getElementById('tab-goals-btn').className = 'dash-tab';
-            document.getElementById('subview-courses').classList.remove('hidden');
-            document.getElementById('subview-goals').classList.add('hidden');
-            renderHomeDashboard();
-        } else {
-            document.getElementById('tab-courses-btn').className = 'dash-tab';
-            document.getElementById('tab-goals-btn').className = 'dash-tab active';
-            document.getElementById('subview-courses').classList.add('hidden');
-            document.getElementById('subview-goals').classList.remove('hidden');
-            renderGoalsHub();
-        }
+        // Tabs
+        document.getElementById('tab-courses-btn').className = appData.activeTab === 'courses' ? 'dash-tab active' : 'dash-tab';
+        document.getElementById('tab-goals-btn').className = appData.activeTab === 'goals' ? 'dash-tab active' : 'dash-tab';
+        document.getElementById('tab-help-btn').className = appData.activeTab === 'help' ? 'dash-tab active' : 'dash-tab';
+
+        document.getElementById('subview-courses').classList.toggle('hidden', appData.activeTab !== 'courses');
+        document.getElementById('subview-goals').classList.toggle('hidden', appData.activeTab !== 'goals');
+        document.getElementById('subview-help').classList.toggle('hidden', appData.activeTab !== 'help');
+
+        if (appData.activeTab === 'courses') renderHomeDashboard();
+        if (appData.activeTab === 'goals') renderGoalsHub();
     } else {
         homeView.classList.add('hidden');
         courseDetailView.classList.remove('hidden');
@@ -303,8 +368,11 @@ function renderCourseDetail() {
     // Categories
     const catContainer = document.getElementById('category-list-container');
     const catSelect = document.getElementById('assign-category');
+    const simCategory = document.getElementById('sim-category');
+
     catContainer.innerHTML = '';
     catSelect.innerHTML = '<option value="" disabled selected>Select category</option>';
+    simCategory.innerHTML = '<option value="" disabled selected>Select category</option>';
 
     let totalWeight = 0;
     c.categories.forEach(cat => {
@@ -314,10 +382,15 @@ function renderCourseDetail() {
         badge.innerHTML = `<span><strong>${escapeHtml(cat.name)}</strong>: ${cat.weight}%</span> <button onclick="deleteCategory('${cat.id}')">&times;</button>`;
         catContainer.appendChild(badge);
 
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = `${cat.name} (${cat.weight}%)`;
-        catSelect.appendChild(opt);
+        const opt1 = document.createElement('option');
+        opt1.value = cat.id;
+        opt1.textContent = `${cat.name} (${cat.weight}%)`;
+        catSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = cat.id;
+        opt2.textContent = `${cat.name} (${cat.weight}%)`;
+        simCategory.appendChild(opt2);
     });
 
     document.getElementById('weight-warning').textContent = totalWeight !== 100 ? `⚠️ Total category weight is ${totalWeight}%. Must total 100%!` : '';
@@ -330,6 +403,7 @@ function renderCourseDetail() {
         tbody.innerHTML = '<tr><td colspan="5" class="empty-message">No assignments logged yet.</td></tr>';
         document.getElementById('overall-percentage').textContent = '0.00%';
         document.getElementById('overall-letter').textContent = '-';
+        updateSimulator();
         return;
     }
 
@@ -352,6 +426,30 @@ function renderCourseDetail() {
 
     document.getElementById('overall-percentage').textContent = stats.pct + '%';
     document.getElementById('overall-letter').textContent = stats.letter;
+    updateSimulator();
+}
+
+// What-If Grade Simulator Logic
+function updateSimulator() {
+    const c = getCurrentCourse();
+    if (!c) return;
+
+    const catId = document.getElementById('sim-category').value;
+    const earned = parseFloat(document.getElementById('sim-earned').value);
+    const possible = parseFloat(document.getElementById('sim-possible').value);
+    const resultBox = document.getElementById('sim-result-text');
+
+    if (!catId || isNaN(earned) || isNaN(possible) || possible <= 0) {
+        resultBox.textContent = "Select a category and enter hypothetical points to preview your grade.";
+        return;
+    }
+
+    // Clone assignments and push simulated assignment
+    let simAssignments = [...c.assignments, { categoryId: catId, earned, possible }];
+    let simCourse = { ...c, assignments: simAssignments };
+    let stats = calculateCourseGrade(simCourse);
+
+    resultBox.innerHTML = `🔮 Hypothetical Result: <strong>${stats.pct}% (${stats.letter})</strong>`;
 }
 
 window.deleteCategory = function(id) {
