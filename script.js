@@ -1,8 +1,8 @@
-// LocalStorage State Management
-let appData = JSON.parse(localStorage.getItem('courseclear_goals_data')) || {
+// Clean Default Initial State
+const defaultState = {
     activeCourseId: null,
     targetGpa: 3.75,
-    activeTab: 'courses', // 'courses' or 'goals'
+    activeTab: 'courses',
     courses: [
         {
             id: "course_1",
@@ -30,244 +30,175 @@ let appData = JSON.parse(localStorage.getItem('courseclear_goals_data')) || {
     ]
 };
 
+// Safe Load & Corrupted Data Handler
+let appData;
+try {
+    const raw = localStorage.getItem('courseclear_v3_data');
+    appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
+    if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
+} catch (e) {
+    appData = JSON.parse(JSON.stringify(defaultState));
+}
+
 const availableThemes = ["theme-pink", "theme-purple", "theme-teal", "theme-yellow", "theme-indigo"];
 
-// DOM Elements
-const homeView = document.getElementById('home-view');
-const courseDetailView = document.getElementById('course-detail-view');
-const coursesGrid = document.getElementById('courses-grid');
-const addCourseMainBtn = document.getElementById('add-course-main-btn');
-const backToHomeBtn = document.getElementById('back-to-home-btn');
-const themeSelector = document.getElementById('theme-selector');
-
-const tabCoursesBtn = document.getElementById('tab-courses-btn');
-const tabGoalsBtn = document.getElementById('tab-goals-btn');
-const subviewCourses = document.getElementById('subview-courses');
-const subviewGoals = document.getElementById('subview-goals');
-const targetGpaInput = document.getElementById('target-gpa-input');
-const saveGoalBtn = document.getElementById('save-goal-btn');
-const currentEstGpaEl = document.getElementById('current-est-gpa');
-const goalStatusText = document.getElementById('goal-status-text');
-const goalStatusMetric = document.getElementById('goal-status-metric');
-const insightsContainer = document.getElementById('insights-container');
-
-const courseNameInput = document.getElementById('course-name-input');
-const courseCreditsInput = document.getElementById('course-credits-input');
-const saveCourseBtn = document.getElementById('save-course-btn');
-const deleteCourseBtn = document.getElementById('delete-course-btn');
-const syllabusTextInput = document.getElementById('syllabus-text-input');
-const parseSyllabusBtn = document.getElementById('parse-syllabus-btn');
-const categoryForm = document.getElementById('category-form');
-const catNameInput = document.getElementById('cat-name');
-const catWeightInput = document.getElementById('cat-weight');
-const categoryListContainer = document.getElementById('category-list-container');
-const weightWarning = document.getElementById('weight-warning');
-const assignmentForm = document.getElementById('assignment-form');
-const assignCategorySelect = document.getElementById('assign-category');
-const assignmentsTableBody = document.getElementById('assignments-table-body');
-const overallPercentageEl = document.getElementById('overall-percentage');
-const overallLetterEl = document.getElementById('overall-letter');
-const clearDataBtn = document.getElementById('clear-data-btn');
-
 document.addEventListener('DOMContentLoaded', () => {
-    targetGpaInput.value = appData.targetGpa;
+    bindEvents();
     renderApp();
 });
 
-// Tab Navigation Switching
-tabCoursesBtn.addEventListener('click', () => {
-    appData.activeTab = 'courses';
-    saveAndRender();
-});
-
-tabGoalsBtn.addEventListener('click', () => {
-    appData.activeTab = 'goals';
-    saveAndRender();
-});
-
-// Save Target GPA
-saveGoalBtn.addEventListener('click', () => {
-    const val = parseFloat(targetGpaInput.value);
-    if (!isNaN(val) && val >= 2.0 && val <= 4.0) {
-        appData.targetGpa = val;
-        saveAndRender();
-        alert("Target semester GPA saved successfully!");
-    } else {
-        alert("Please enter a valid GPA between 2.0 and 4.0.");
-    }
-});
-
-// View Navigation: Open Home
-backToHomeBtn.addEventListener('click', () => {
-    appData.activeCourseId = null;
-    document.body.className = "theme-pink";
-    saveAndRender();
-});
-
-// Add Course
-addCourseMainBtn.addEventListener('click', () => {
-    const newId = 'course_' + Date.now();
-    const assignedTheme = availableThemes[appData.courses.length % availableThemes.length];
+function bindEvents() {
+    // Navigation
+    document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
+    document.getElementById('tab-goals-btn').onclick = () => { appData.activeTab = 'goals'; saveAndRender(); };
+    document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-pink'; saveAndRender(); };
     
-    const newCourse = {
-        id: newId,
-        name: "New Course " + (appData.courses.length + 1),
-        credits: 3,
-        theme: assignedTheme,
-        categories: [],
-        assignments: []
+    // Course Actions
+    document.getElementById('add-course-main-btn').onclick = () => {
+        const newId = 'course_' + Date.now();
+        appData.courses.push({
+            id: newId,
+            name: "New Course " + (appData.courses.length + 1),
+            credits: 3,
+            theme: availableThemes[appData.courses.length % availableThemes.length],
+            categories: [],
+            assignments: []
+        });
+        appData.activeCourseId = newId;
+        saveAndRender();
     };
-    appData.courses.push(newCourse);
-    appData.activeCourseId = newId;
-    saveAndRender();
-});
 
-window.openCourseDetail = function(courseId) {
-    appData.activeCourseId = courseId;
-    saveAndRender();
-};
-
-themeSelector.addEventListener('change', (e) => {
-    const currentCourse = getCurrentCourse();
-    if (currentCourse) {
-        currentCourse.theme = e.target.value;
-        document.body.className = currentCourse.theme;
+    document.getElementById('save-course-btn').onclick = () => {
+        const c = getCurrentCourse();
+        if (!c) return;
+        c.name = document.getElementById('course-name-input').value.trim() || c.name;
+        c.credits = parseInt(document.getElementById('course-credits-input').value) || 3;
         saveAndRender();
-    }
-});
+    };
 
-saveCourseBtn.addEventListener('click', () => {
-    const currentCourse = getCurrentCourse();
-    if (!currentCourse) return;
-    const name = courseNameInput.value.trim();
-    const credits = parseInt(courseCreditsInput.value);
-    if (name) {
-        currentCourse.name = name;
-        currentCourse.credits = credits;
-        saveAndRender();
-    }
-});
-
-deleteCourseBtn.addEventListener('click', () => {
-    if (confirm("Are you sure you want to delete this course?")) {
-        appData.courses = appData.courses.filter(c => c.id !== appData.activeCourseId);
-        appData.activeCourseId = null;
-        document.body.className = "theme-pink";
-        saveAndRender();
-    }
-});
-
-parseSyllabusBtn.addEventListener('click', () => {
-    const text = syllabusTextInput.value.trim();
-    if (!text) {
-        alert("Please paste syllabus text first!");
-        return;
-    }
-
-    const currentCourse = getCurrentCourse();
-    const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
-    let match;
-    let newCategories = [];
-
-    while ((match = regex.exec(text)) !== null) {
-        let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
-        let catWeight = parseFloat(match[2]);
-        if (catName && !isNaN(catWeight)) {
-            newCategories.push({
-                id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                name: catName,
-                weight: catWeight
-            });
+    document.getElementById('delete-course-btn').onclick = () => {
+        if (confirm("Delete this course?")) {
+            appData.courses = appData.courses.filter(c => c.id !== appData.activeCourseId);
+            appData.activeCourseId = null;
+            document.body.className = "theme-pink";
+            saveAndRender();
         }
-    }
+    };
 
-    if (newCategories.length > 0) {
-        currentCourse.categories = newCategories;
-        syllabusTextInput.value = '';
-        saveAndRender();
-        alert("Successfully parsed syllabus categories!");
-    } else {
-        alert("Could not detect categories. Include percentages like 'Exams 40%' or 'Homework: 30%'.");
-    }
-});
+    document.getElementById('theme-selector').onchange = (e) => {
+        const c = getCurrentCourse();
+        if (c) {
+            c.theme = e.target.value;
+            document.body.className = c.theme;
+            saveAndRender();
+        }
+    };
 
-categoryForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const currentCourse = getCurrentCourse();
-    const name = catNameInput.value.trim();
-    const weight = parseFloat(catWeightInput.value);
+    // Goal Actions
+    document.getElementById('save-goal-btn').onclick = () => {
+        const val = parseFloat(document.getElementById('target-gpa-input').value);
+        if (!isNaN(val) && val >= 2.0 && val <= 4.0) {
+            appData.targetGpa = val;
+            saveAndRender();
+            alert("Target GPA saved!");
+        }
+    };
 
-    if (!name || isNaN(weight)) return;
+    // Category Form
+    document.getElementById('category-form').onsubmit = (e) => {
+        e.preventDefault();
+        const c = getCurrentCourse();
+        const name = document.getElementById('cat-name').value.trim();
+        const weight = parseFloat(document.getElementById('cat-weight').value);
+        if (name && !isNaN(weight)) {
+            c.categories.push({ id: 'cat_' + Date.now(), name, weight });
+            document.getElementById('cat-name').value = '';
+            document.getElementById('cat-weight').value = '';
+            saveAndRender();
+        }
+    };
 
-    currentCourse.categories.push({ id: 'cat_' + Date.now(), name, weight });
-    catNameInput.value = '';
-    catWeightInput.value = '';
-    saveAndRender();
-});
+    // Assignment Form
+    document.getElementById('assignment-form').onsubmit = (e) => {
+        e.preventDefault();
+        const c = getCurrentCourse();
+        const name = document.getElementById('assign-name').value.trim();
+        const categoryId = document.getElementById('assign-category').value;
+        const earned = parseFloat(document.getElementById('assign-earned').value);
+        const possible = parseFloat(document.getElementById('assign-possible').value);
 
-window.deleteCategory = function(id) {
-    const currentCourse = getCurrentCourse();
-    currentCourse.categories = currentCourse.categories.filter(c => c.id !== id);
-    currentCourse.assignments = currentCourse.assignments.filter(a => a.categoryId !== id);
-    saveAndRender();
-};
+        if (name && categoryId && !isNaN(earned) && !isNaN(possible) && possible > 0) {
+            c.assignments.push({ id: 'assign_' + Date.now(), name, categoryId, earned, possible });
+            document.getElementById('assignment-form').reset();
+            saveAndRender();
+        }
+    };
 
-assignmentForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const currentCourse = getCurrentCourse();
-    const name = document.getElementById('assign-name').value.trim();
-    const categoryId = assignCategorySelect.value;
-    const earned = parseFloat(document.getElementById('assign-earned').value);
-    const possible = parseFloat(document.getElementById('assign-possible').value);
+    // Syllabus Parse
+    document.getElementById('parse-syllabus-btn').onclick = () => {
+        const text = document.getElementById('syllabus-text-input').value.trim();
+        if (!text) return alert("Paste syllabus text first!");
 
-    if (!name || !categoryId || isNaN(earned) || isNaN(possible) || possible <= 0) return;
+        const c = getCurrentCourse();
+        const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
+        let match, newCats = [];
 
-    currentCourse.assignments.push({ id: 'assign_' + Date.now(), name, categoryId, earned, possible });
-    assignmentForm.reset();
-    saveAndRender();
-});
+        while ((match = regex.exec(text)) !== null) {
+            let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
+            let catWeight = parseFloat(match[2]);
+            if (catName && !isNaN(catWeight)) {
+                newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
+            }
+        }
 
-window.deleteAssignment = function(id) {
-    const currentCourse = getCurrentCourse();
-    currentCourse.assignments = currentCourse.assignments.filter(a => a.id !== id);
-    saveAndRender();
-});
+        if (newCats.length > 0) {
+            c.categories = newCats;
+            document.getElementById('syllabus-text-input').value = '';
+            saveAndRender();
+            alert("Parsed syllabus categories successfully!");
+        } else {
+            alert("Could not detect categories. Include format like 'Exams 40%'.");
+        }
+    };
 
-clearDataBtn.addEventListener('click', () => {
-    const currentCourse = getCurrentCourse();
-    if (confirm("Reset categories and assignments for this course?")) {
-        currentCourse.categories = [];
-        currentCourse.assignments = [];
-        saveAndRender();
-    }
-});
+    document.getElementById('clear-data-btn').onclick = () => {
+        const c = getCurrentCourse();
+        if (confirm("Reset categories and assignments for this course?")) {
+            c.categories = [];
+            c.assignments = [];
+            saveAndRender();
+        }
+    };
+}
 
 function getCurrentCourse() {
     return appData.courses.find(c => c.id === appData.activeCourseId);
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_goals_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v3_data', JSON.stringify(appData));
     renderApp();
 }
 
 function renderApp() {
+    const homeView = document.getElementById('home-view');
+    const courseDetailView = document.getElementById('course-detail-view');
+
     if (!appData.activeCourseId) {
         homeView.classList.remove('hidden');
         courseDetailView.classList.add('hidden');
         
-        // Toggle Subviews
         if (appData.activeTab === 'courses') {
-            tabCoursesBtn.className = 'dash-tab active';
-            tabGoalsBtn.className = 'dash-tab';
-            subviewCourses.classList.remove('hidden');
-            subviewGoals.classList.add('hidden');
+            document.getElementById('tab-courses-btn').className = 'dash-tab active';
+            document.getElementById('tab-goals-btn').className = 'dash-tab';
+            document.getElementById('subview-courses').classList.remove('hidden');
+            document.getElementById('subview-goals').classList.add('hidden');
             renderHomeDashboard();
         } else {
-            tabCoursesBtn.className = 'dash-tab';
-            tabGoalsBtn.className = 'dash-tab active';
-            subviewCourses.classList.add('hidden');
-            subviewGoals.classList.remove('hidden');
+            document.getElementById('tab-courses-btn').className = 'dash-tab';
+            document.getElementById('tab-goals-btn').className = 'dash-tab active';
+            document.getElementById('subview-courses').classList.add('hidden');
+            document.getElementById('subview-goals').classList.remove('hidden');
             renderGoalsHub();
         }
     } else {
@@ -278,173 +209,169 @@ function renderApp() {
 }
 
 function renderHomeDashboard() {
-    coursesGrid.innerHTML = '';
-    
+    const grid = document.getElementById('courses-grid');
+    grid.innerHTML = '';
+
+    const themeColors = { 'theme-pink': '#d63384', 'theme-purple': '#8a2be2', 'theme-teal': '#0d9488', 'theme-yellow': '#d97706', 'theme-indigo': '#4f46e5' };
+
     appData.courses.forEach(course => {
         const stats = calculateCourseGrade(course);
         const tile = document.createElement('div');
         tile.className = `course-card-tile ${course.theme || 'theme-pink'}`;
-        
-        const themeColors = {
-            'theme-pink': '#d63384',
-            'theme-purple': '#8a2be2',
-            'theme-teal': '#0d9488',
-            'theme-yellow': '#d97706',
-            'theme-indigo': '#4f46e5'
-        };
         tile.style.setProperty('--card-accent', themeColors[course.theme] || '#d63384');
+        tile.onclick = () => { appData.activeCourseId = course.id; saveAndRender(); };
 
-        tile.onclick = () => openCourseDetail(course.id);
         tile.innerHTML = `
             <div>
                 <div class="course-card-title">${escapeHtml(course.name)}</div>
-                <div class="course-card-credits">${course.credits} Credit Hours</div>
+                <div class="course-card-credits">${course.credits} Credits</div>
             </div>
             <div class="course-card-grade">
                 <span class="course-card-pct">${stats.pct}%</span>
                 <span class="course-card-letter">(${stats.letter})</span>
             </div>
         `;
-        coursesGrid.appendChild(tile);
+        grid.appendChild(tile);
     });
 }
 
 function renderGoalsHub() {
-    let totalQualityPoints = 0;
-    let totalCredits = 0;
-    let gradedCoursesCount = 0;
+    let totalQualityPoints = 0, totalCredits = 0, gradedCount = 0;
 
     appData.courses.forEach(course => {
         const stats = calculateCourseGrade(course);
         if (course.assignments.length > 0) {
-            gradedCoursesCount++;
-            const gpaValue = getGpaPoints(stats.letter);
-            totalQualityPoints += gpaValue * course.credits;
+            gradedCount++;
+            totalQualityPoints += getGpaPoints(stats.letter) * course.credits;
             totalCredits += course.credits;
         }
     });
 
     const currentGpa = totalCredits > 0 ? (totalQualityPoints / totalCredits).toFixed(2) : '0.00';
-    currentEstGpaEl.textContent = currentGpa;
+    document.getElementById('current-est-gpa').textContent = currentGpa;
+    document.getElementById('target-gpa-input').value = appData.targetGpa;
 
-    if (gradedCoursesCount === 0) {
-        goalStatusText.textContent = 'No Grades Logged';
-        goalStatusMetric.style.background = '#f1f5f9';
+    const statusText = document.getElementById('goal-status-text');
+    const statusMetric = document.getElementById('goal-status-metric');
+
+    if (gradedCount === 0) {
+        statusText.textContent = 'No Grades Logged';
+        statusMetric.style.background = '#f1f5f9';
     } else if (parseFloat(currentGpa) >= appData.targetGpa) {
-        goalStatusText.textContent = '🎯 On Track!';
-        goalStatusMetric.style.background = '#f0fdf4';
-        goalStatusMetric.style.color = '#38a169';
+        statusText.textContent = '🎯 On Track!';
+        statusMetric.style.background = '#f0fdf4';
+        statusMetric.style.color = '#38a169';
     } else {
-        goalStatusText.textContent = '⚠️ Needs Attention';
-        goalStatusMetric.style.background = '#fefce8';
-        goalStatusMetric.style.color = '#d69e2e';
+        statusText.textContent = '⚠️ Needs Attention';
+        statusMetric.style.background = '#fefce8';
+        statusMetric.style.color = '#d69e2e';
     }
 
-    // Generate Actionable Insights
-    insightsContainer.innerHTML = '';
-    
-    if (gradedCoursesCount === 0) {
-        insightsContainer.innerHTML = `
-            <div class="insight-item">
-                <div class="insight-title">Get Started Logging Scores</div>
-                <div class="insight-desc">Add assignments to your course tabs to start tracking your cumulative semester GPA against your target of ${appData.targetGpa}.</div>
-            </div>
-        `;
+    const container = document.getElementById('insights-container');
+    container.innerHTML = '';
+
+    if (gradedCount === 0) {
+        container.innerHTML = `<div class="insight-item"><div class="insight-title">Start Logging Scores</div><div class="insight-desc">Add scores to your course tabs to track your GPA toward your target of ${appData.targetGpa}.</div></div>`;
         return;
     }
 
-    let insightsHtml = '';
     appData.courses.forEach(course => {
         const stats = calculateCourseGrade(course);
         if (course.assignments.length > 0) {
             const courseGpa = getGpaPoints(stats.letter);
-            if (courseGpa < appData.targetGpa) {
-                insightsHtml += `
-                    <div class="insight-item warning">
-                        <div class="insight-title">Catch-Up Opportunity: ${escapeHtml(course.name)} (${stats.pct}%)</div>
-                        <div class="insight-desc">You are currently at a <strong>${stats.letter}</strong> (${stats.pct}%). To pull this closer to your ${appData.targetGpa} GPA goal, focus heavily on upcoming weighted exams and high-point deliverables.</div>
-                    </div>
-                `;
-            } else {
-                insightsHtml += `
-                    <div class="insight-item success">
-                        <div class="insight-title">Exceeding Goal: ${escapeHtml(course.name)} (${stats.pct}%)</div>
-                        <div class="insight-desc">Great work! Your <strong>${stats.letter}</strong> is supporting or exceeding your semester GPA target. Keep up the consistency!</div>
-                    </div>
-                `;
-            }
+            const isBehind = courseGpa < appData.targetGpa;
+            const div = document.createElement('div');
+            div.className = `insight-item ${isBehind ? 'warning' : 'success'}`;
+            div.innerHTML = `
+                <div class="insight-title">${isBehind ? 'Catch-Up Opportunity' : 'Exceeding Goal'}: ${escapeHtml(course.name)} (${stats.pct}%)</div>
+                <div class="insight-desc">${isBehind ? `Currently at a <strong>${stats.letter}</strong>. Focus on upcoming weighted deliverables to pull this grade toward your ${appData.targetGpa} goal.` : `Great job! Your <strong>${stats.letter}</strong> is supporting your${appData.targetGpa} GPA target.`}</div>
+            `;
+            container.appendChild(div);
         }
     });
-
-    insightsContainer.innerHTML = insightsHtml;
 }
 
 function renderCourseDetail() {
-    const currentCourse = getCurrentCourse();
-    if (!currentCourse) return;
+    const c = getCurrentCourse();
+    if (!c) return;
 
-    document.body.className = currentCourse.theme || 'theme-pink';
-    themeSelector.value = currentCourse.theme || 'theme-pink';
-    courseNameInput.value = currentCourse.name;
-    courseCreditsInput.value = currentCourse.credits || 3;
+    document.body.className = c.theme || 'theme-pink';
+    document.getElementById('theme-selector').value = c.theme || 'theme-pink';
+    document.getElementById('course-name-input').value = c.name;
+    document.getElementById('course-credits-input').value = c.credits || 3;
 
-    categoryListContainer.innerHTML = '';
-    assignCategorySelect.innerHTML = '<option value="" disabled selected>Select category</option>';
+    // Categories
+    const catContainer = document.getElementById('category-list-container');
+    const catSelect = document.getElementById('assign-category');
+    catContainer.innerHTML = '';
+    catSelect.innerHTML = '<option value="" disabled selected>Select category</option>';
 
     let totalWeight = 0;
-    currentCourse.categories.forEach(cat => {
+    c.categories.forEach(cat => {
         totalWeight += cat.weight;
-
         const badge = document.createElement('div');
         badge.className = 'category-badge';
         badge.innerHTML = `<span><strong>${escapeHtml(cat.name)}</strong>: ${cat.weight}%</span> <button onclick="deleteCategory('${cat.id}')">&times;</button>`;
-        categoryListContainer.appendChild(badge);
+        catContainer.appendChild(badge);
 
         const opt = document.createElement('option');
         opt.value = cat.id;
         opt.textContent = `${cat.name} (${cat.weight}%)`;
-        assignCategorySelect.appendChild(opt);
+        catSelect.appendChild(opt);
     });
 
-    weightWarning.textContent = totalWeight !== 100 ? `⚠️ Total category weight is ${totalWeight}%. It should equal 100% for accurate calculations!` : '';
+    document.getElementById('weight-warning').textContent = totalWeight !== 100 ? `⚠️ Total category weight is ${totalWeight}%. Must total 100%!` : '';
 
-    assignmentsTableBody.innerHTML = '';
-    if (currentCourse.assignments.length === 0) {
-        assignmentsTableBody.innerHTML = `<tr><td colspan="5" class="empty-message">No assignments logged yet. Add your scores above!</td></tr>`;
-        overallPercentageEl.textContent = '0.00%';
-        overallLetterEl.textContent = '-';
+    // Assignments
+    const tbody = document.getElementById('assignments-table-body');
+    tbody.innerHTML = '';
+
+    if (c.assignments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-message">No assignments logged yet.</td></tr>';
+        document.getElementById('overall-percentage').textContent = '0.00%';
+        document.getElementById('overall-letter').textContent = '-';
         return;
     }
 
-    const stats = calculateCourseGrade(currentCourse);
-    
-    currentCourse.assignments.forEach(assign => {
-        const cat = currentCourse.categories.find(c => c.id === assign.categoryId);
-        const catName = cat ? cat.name : 'Unassigned';
+    const stats = calculateCourseGrade(c);
+
+    c.assignments.forEach(assign => {
+        const cat = c.categories.find(cat => cat.id === assign.categoryId);
         const assignPct = (assign.earned / assign.possible) * 100;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${escapeHtml(assign.name)}</strong></td>
-            <td>${escapeHtml(catName)}</td>
+            <td>${escapeHtml(cat ? cat.name : 'Unassigned')}</td>
             <td>${assign.earned} / ${assign.possible}</td>
             <td>${assignPct.toFixed(2)}%</td>
             <td><button class="btn-secondary-outline" style="padding: 0.2rem 0.5rem; height: auto;" onclick="deleteAssignment('${assign.id}')">Delete</button></td>
         `;
-        assignmentsTableBody.appendChild(tr);
+        tbody.appendChild(tr);
     });
 
-    overallPercentageEl.textContent = stats.pct + '%';
-    overallLetterEl.textContent = stats.letter;
+    document.getElementById('overall-percentage').textContent = stats.pct + '%';
+    document.getElementById('overall-letter').textContent = stats.letter;
 }
 
+window.deleteCategory = function(id) {
+    const c = getCurrentCourse();
+    c.categories = c.categories.filter(cat => cat.id !== id);
+    c.assignments = c.assignments.filter(a => a.categoryId !== id);
+    saveAndRender();
+};
+
+window.deleteAssignment = function(id) {
+    const c = getCurrentCourse();
+    c.assignments = c.assignments.filter(a => a.id !== id);
+    saveAndRender();
+};
+
 function calculateCourseGrade(course) {
-    if (course.assignments.length === 0) return { pct: '0.00', letter: '-' };
+    if (!course.assignments || course.assignments.length === 0) return { pct: '0.00', letter: '-' };
 
     let categoryScores = {};
-    course.categories.forEach(cat => {
-        categoryScores[cat.id] = { earned: 0, possible: 0, weight: cat.weight };
-    });
+    course.categories.forEach(cat => { categoryScores[cat.id] = { earned: 0, possible: 0, weight: cat.weight }; });
 
     course.assignments.forEach(assign => {
         if (categoryScores[assign.categoryId]) {
@@ -453,23 +380,17 @@ function calculateCourseGrade(course) {
         }
     });
 
-    let finalWeightedSum = 0;
-    let activeWeightsTotal = 0;
-
+    let finalWeightedSum = 0, activeWeightsTotal = 0;
     Object.keys(categoryScores).forEach(catId => {
         let catData = categoryScores[catId];
         if (catData.possible > 0) {
-            let catPercentage = (catData.earned / catData.possible);
-            finalWeightedSum += catPercentage * catData.weight;
+            finalWeightedSum += (catData.earned / catData.possible) * catData.weight;
             activeWeightsTotal += catData.weight;
         }
     });
 
     let overallPercentage = activeWeightsTotal > 0 ? (finalWeightedSum / (activeWeightsTotal / 100)) : 0;
-    return {
-        pct: overallPercentage.toFixed(2),
-        letter: getLetterGrade(overallPercentage)
-    };
+    return { pct: overallPercentage.toFixed(2), letter: getLetterGrade(overallPercentage) };
 }
 
 function getLetterGrade(pct) {
