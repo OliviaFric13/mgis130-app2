@@ -2,7 +2,7 @@
 
 **Tagline:** Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.
 
-CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It provides a home dashboard with tabbed navigation between **My Courses** and the **GPA & Goals Hub**, custom aesthetic color themes for each class, automatic syllabus text parsing, and real-time academic coaching insights.
+CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It features a clean home dashboard with navigation between **My Courses** and the **GPA & Goals Hub**, custom aesthetic color themes for each class, automatic syllabus text parsing, and real-time academic coaching insights.
 
 This project demonstrates the **Three-Layer Architecture** of information systems.
 
@@ -11,7 +11,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Comprehensive State Model:** Stores an overarching application object (`courseclear_goals_data`) holding target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `theme`, `categories`, `assignments`).
+* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v3_data`) holding target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `theme`, `categories`, `assignments`).
 * **Persistence Layer:** Utilizes browser `localStorage` to save and load all user records and goal settings in JSON format.
 * **State Preservation:** Retains all course data, assignment grades, and customized themes across browser sessions without needing an external database.
 
