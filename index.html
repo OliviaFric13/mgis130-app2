@@ -95,16 +95,16 @@
                     <h2>📖 How CourseClear Works</h2>
                     <div class="help-section-content">
                         <h3>1. Managing Courses & Themes</h3>
-                        <p>From the home dashboard, click <strong>+ Add New Course</strong> or select an existing course card. Inside each course, you can customize your credit hours and pick an aesthetic color theme (Pink, Purple, Teal, Yellow, or Indigo).</p>
+                        <p>From the home dashboard, click <strong>+ Add New Course</strong> or select an existing course card. Inside each course, you can set your credit hours, set a target grade, and pick an aesthetic color theme (Pink, Purple, Teal, Yellow, or Indigo).</p>
                         
                         <h3>2. Syllabus Importer & Weights</h3>
                         <p>Instead of manually typing every category, paste your syllabus breakdown text (e.g., <em>"Exams 40%, Homework 30%"</em>) into the Quick Syllabus Importer and click auto-fill. Make sure your category weights total exactly 100%!</p>
 
-                        <h3>3. Logging Scores & Confetti</h3>
-                        <p>Add assignment points earned vs. possible. Whenever you score 100% or earn an A grade, CourseClear will celebrate with a confetti animation!</p>
+                        <h3>3. Study Buddy Feedback Coach</h3>
+                        <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips.</p>
 
                         <h3>4. What-If Grade Simulator</h3>
-                        <p>Inside any course detail view, use the What-If Simulator slider to test hypothetical future assignment scores and see how they impact your overall percentage instantly.</p>
+                        <p>Inside any course detail view, use the What-If Simulator to test hypothetical future scores and see how they impact your overall percentage instantly.</p>
 
                         <h3>5. Backup & Restore</h3>
                         <p>Go to the <strong>GPA & Goals Hub</strong> anytime to export your data as a JSON file or import a past backup so you never lose your progress.</p>
@@ -130,8 +130,9 @@
             </div>
 
             <main>
+                <!-- COURSE INFO & TARGET GRADE -->
                 <section class="card">
-                    <h2>Course Info & Credits</h2>
+                    <h2>Course Info & Goals</h2>
                     <div class="course-setup-row">
                         <div class="form-group" style="flex: 2;">
                             <label for="course-name-input">Course Name / Code</label>
@@ -146,9 +147,20 @@
                                 <option value="4">4 Credits</option>
                             </select>
                         </div>
+                        <div class="form-group" style="flex: 1.5;">
+                            <label for="course-target-input">Target Grade (%)</label>
+                            <input type="number" step="1" min="50" max="100" id="course-target-input" placeholder="90">
+                            <span class="field-hint">Input the grade (%) you hope to achieve in this course</span>
+                        </div>
                         <button id="save-course-btn" class="btn-primary">Update</button>
                         <button id="delete-course-btn" class="btn-secondary-outline">Delete</button>
                     </div>
+                </section>
+
+                <!-- STUDY BUDDY ADVISOR -->
+                <section class="card study-buddy-card">
+                    <h2>🤖 Study Buddy Advisor</h2>
+                    <div id="study-buddy-container"></div>
                 </section>
 
                 <section class="card">
