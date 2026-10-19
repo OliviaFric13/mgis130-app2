@@ -22,7 +22,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v5_data');
+    const raw = localStorage.getItem('courseclear_v6_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -228,7 +228,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v5_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v6_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -357,10 +357,8 @@ function renderCourseDetail() {
     document.getElementById('course-credits-input').value = c.credits || 3;
     document.getElementById('course-target-input').value = c.targetGrade || 90;
 
-    // Render Study Buddy Advisor
     renderStudyBuddy(c);
 
-    // Categories
     const catContainer = document.getElementById('category-list-container');
     const catSelect = document.getElementById('assign-category');
     const simCategory = document.getElementById('sim-category');
@@ -390,7 +388,6 @@ function renderCourseDetail() {
 
     document.getElementById('weight-warning').textContent = totalWeight !== 100 ? `⚠️ Total category weight is ${totalWeight}%. Must total 100%!` : '';
 
-    // Assignments
     const tbody = document.getElementById('assignments-table-body');
     tbody.innerHTML = '';
 
@@ -424,7 +421,6 @@ function renderCourseDetail() {
     updateSimulator();
 }
 
-// Render Study Buddy Advisor Action Plan
 function renderStudyBuddy(course) {
     const container = document.getElementById('study-buddy-container');
     const stats = calculateCourseGrade(course);
@@ -441,7 +437,6 @@ function renderStudyBuddy(course) {
         return;
     }
 
-    // Find lowest assignment score
     let lowestAssign = null;
     let lowestPct = 101;
     course.assignments.forEach(a => {
