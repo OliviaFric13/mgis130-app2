@@ -2,7 +2,7 @@
 
 **Tagline:** Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.
 
-CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It features a personalized home dashboard with navigation between **My Courses**, the **GPA & Goals Hub**, and a **Help & Guide**, custom aesthetic color themes, automatic syllabus text parsing, individual course target grades, an AI **Study Buddy Feedback Coach**, a What-If grade simulator, confetti celebrations, and JSON backup/restore capabilities.
+CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It features a personalized home dashboard with tabbed navigation between **My Courses**, the **GPA & Goals Hub**, and a **Help & Guide**, custom aesthetic color themes, automatic syllabus text parsing, individual course target grades, an AI **Study Buddy Feedback Coach**, a What-If grade simulator, confetti celebrations, and JSON backup/restore capabilities.
 
 This project demonstrates the **Three-Layer Architecture** of information systems.
 
@@ -11,7 +11,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v5_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
+* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v6_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
 * **Persistence Layer:** Utilizes browser `localStorage` to securely save and load all user records, individual course target percentages, custom themes, and goal settings in JSON format.
 * **Backup & Restore System:** Supports complete JSON file export and import, allowing users to download local backups of their semester data or restore previous records seamlessly.
 
@@ -26,6 +26,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ### 3. User Interface Layer (Presentation)
 * **Personalized Onboarding Modal:** Greets first-time users and stores their name to power a customized greeting banner and rotating daily academic motivation quotes.
 * **Interactive Home Dashboard:** Switch effortlessly between your **Enrolled Courses** grid (displaying live grades vs. individual targets), **GPA & Goals Hub**, and **Help & Guide** documentation tab.
+* **Responsive Form Grid:** Optimized CSS layouts for assignment entry and syllabus weights ensuring fluid alignment and zero overflow on all screen sizes.
 * **Dynamic Theme Engine:** Applies distinct color palettes (Pink, Purple, Teal, Yellow, Indigo) customized per course tile and workspace view.
 * **Confetti Delighters:** Triggers celebratory particle animations via `canvas-confetti` whenever an assignment score of 100% or an `A` grade is achieved.
 
@@ -33,6 +34,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 
 ## 🚀 Key Features
 
+* 📱 **Responsive Input Grids:** Cleanly aligned form fields for assignment logging that fit perfectly within container boundaries on any screen size.
 * 🎯 **Individual Course Target Grades:** Set a specific target percentage for each class and view live grade vs. target indicators directly on your course cards and home dashboard.
 * 🤖 **Study Buddy Feedback Coach:** Get automated advice inside each course analyzing your grade gap and pointing out lowest-scoring assignments to focus on.
 * ✨ **Personalized Greeting & Motivation:** Custom welcome banner powered by user onboarding and daily academic quotes.
