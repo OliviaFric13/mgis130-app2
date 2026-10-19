@@ -76,23 +76,37 @@ body {
 .theme-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
 .theme-dropdown { padding: 0.35rem 0.5rem; border-radius: 8px; border: 1px solid var(--border-color); font-weight: 600; }
 
-.card { background-color: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color); }
+.card { background-color: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color); overflow: hidden; }
 .card h2 { font-size: 1.25rem; margin-bottom: 1rem; }
 .section-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; }
 .field-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block; }
 
-.course-setup-row, .category-form-grid, .simulator-row { display: flex; gap: 1rem; align-items: flex-end; }
-.category-form-grid { display: grid; grid-template-columns: 2fr 1fr auto; }
-.assignment-form-grid { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; gap: 1rem; }
-.goal-config-grid { display: flex; gap: 1rem; align-items: flex-end; }
-.backup-row { display: flex; gap: 1rem; }
+.course-setup-row, .simulator-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+.category-form-grid { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+.category-form-grid .form-group { flex: 1; min-width: 130px; }
+
+/* FIX: ASSIGNMENT FORM GRID OVERFLOW FIX */
+.assignment-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+
+.assignment-form-grid .btn-primary {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.goal-config-grid { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+.backup-row { display: flex; gap: 1rem; flex-wrap: wrap; }
 
 .importer-row { display: flex; flex-direction: column; gap: 0.75rem; }
 .importer-row textarea { width: 100%; height: 75px; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; }
 
-.form-group { display: flex; flex-direction: column; }
+.form-group { display: flex; flex-direction: column; width: 100%; }
 .form-group label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; }
-.form-group input, .form-group select { padding: 0.6rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; }
+.form-group input, .form-group select { padding: 0.6rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; width: 100%; }
 
 .btn-primary { background-color: var(--primary); color: white; border: none; border-radius: 8px; padding: 0.65rem 1.25rem; font-weight: 600; cursor: pointer; height: 41px; }
 .btn-secondary { background-color: var(--primary-light); color: var(--primary); border: none; border-radius: 8px; padding: 0.65rem 1.25rem; font-weight: 600; cursor: pointer; }
@@ -140,6 +154,5 @@ th { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); background-
 .empty-message { text-align: center; color: var(--text-muted); padding: 1.5rem !important; }
 
 @media (max-width: 768px) {
-    .assignment-form-grid, .category-form-grid, .summary-card, .goal-config-grid, .simulator-row, .course-setup-row { grid-template-columns: 1fr; }
-    .assignment-form-grid button { grid-column: span 1 !important; }
+    .summary-card { grid-template-columns: 1fr; }
 }
