@@ -22,7 +22,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v6_data');
+    const raw = localStorage.getItem('courseclear_v7_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -37,29 +37,92 @@ const quotes = [
     "🎯 'Focus on progress, not perfection.'"
 ];
 
+// Tutorial Tour Steps Content
+const tourSteps = [
+    {
+        badge: "Step 1 of 4",
+        title: "Courses & Themes 🎨",
+        text: "Add all your classes, assign credit hours, set target percentage grades, and customize each course tile with aesthetic color themes (Pink, Purple, Teal, Yellow, Indigo)."
+    },
+    {
+        badge: "Step 2 of 4",
+        title: "Quick Syllabus Importer ⚡",
+        text: "Don't manually type categories! Paste syllabus grading text (e.g. 'Exams 40%, Homework 30%') and CourseClear will automatically parse and create weighted categories totaling 100%."
+    },
+    {
+        badge: "Step 3 of 4",
+        title: "Study Buddy & What-If Simulator 🤖",
+        text: "Your AI Study Buddy analyzes your lowest-scoring work and recommends study tips. Use the What-If Simulator to test hypothetical future scores before official grades post!"
+    },
+    {
+        badge: "Step 4 of 4",
+        title: "GPA Goals & Data Backup 🎯",
+        text: "Track your overall semester target GPA under the 'GPA & Goals' tab and export/import JSON backup files anytime so you never lose your progress."
+    }
+];
+
+let currentTourIndex = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('daily-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
     
     if (!appData.userName) {
         document.getElementById('welcome-modal').classList.remove('hidden');
+        showModalStep('modal-step-name');
     }
 
     bindEvents();
     renderApp();
 });
 
+function showModalStep(stepId) {
+    document.getElementById('modal-step-name').classList.add('hidden');
+    document.getElementById('modal-step-intro').classList.add('hidden');
+    document.getElementById('modal-step-tour').classList.add('hidden');
+    document.getElementById(stepId).classList.remove('hidden');
+}
+
 function bindEvents() {
-    document.getElementById('setup-save-btn').onclick = () => {
+    // Step 0: Name Save
+    document.getElementById('setup-name-btn').onclick = () => {
         const name = document.getElementById('setup-name-input').value.trim();
         if (name) {
             appData.userName = name;
-            document.getElementById('welcome-modal').classList.add('hidden');
             saveAndRender();
+            document.getElementById('tour-welcome-title').textContent = `Nice to meet you, ${name}! 👋`;
+            showModalStep('modal-step-intro');
         } else {
             alert("Please enter your name.");
         }
     };
 
+    // Step 1: Tour Intro Choices
+    document.getElementById('start-tour-btn').onclick = () => {
+        currentTourIndex = 0;
+        renderTourStep();
+        showModalStep('modal-step-tour');
+    };
+
+    document.getElementById('skip-tour-btn').onclick = () => {
+        document.getElementById('welcome-modal').classList.add('hidden');
+    };
+
+    // Step 2: Tour Progression & Skip
+    document.getElementById('tour-skip-anytime-btn').onclick = () => {
+        document.getElementById('welcome-modal').classList.add('hidden');
+    };
+
+    document.getElementById('tour-next-btn').onclick = () => {
+        currentTourIndex++;
+        if (currentTourIndex < tourSteps.length) {
+            renderTourStep();
+        } else {
+            document.getElementById('welcome-modal').classList.add('hidden');
+            confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        }
+    };
+
+    // App Navigation
     document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
     document.getElementById('tab-goals-btn').onclick = () => { appData.activeTab = 'goals'; saveAndRender(); };
     document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
@@ -223,12 +286,20 @@ function bindEvents() {
     };
 }
 
+function renderTourStep() {
+    const step = tourSteps[currentTourIndex];
+    document.getElementById('tour-step-badge').textContent = step.badge;
+    document.getElementById('tour-step-title').textContent = step.title;
+    document.getElementById('tour-step-body').textContent = step.text;
+    document.getElementById('tour-next-btn').textContent = currentTourIndex === tourSteps.length - 1 ? "Finish Tour 🎉" : "Next →";
+}
+
 function getCurrentCourse() {
     return appData.courses.find(c => c.id === appData.activeCourseId);
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v6_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v7_data', JSON.stringify(appData));
     renderApp();
 }
 
