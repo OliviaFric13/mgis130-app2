@@ -2,7 +2,7 @@
 
 **Tagline:** Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.
 
-CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It features a personalized home dashboard with tabbed navigation between **My Courses**, the **GPA & Goals Hub**, and a **Help & Guide**, custom aesthetic color themes, automatic syllabus text parsing, individual course target grades, an AI **Study Buddy Feedback Coach**, a What-If grade simulator, confetti celebrations, and JSON backup/restore capabilities.
+CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. It features an interactive onboarding tour for first-time users, a personalized home dashboard with tabbed navigation between **My Courses**, the **GPA & Goals Hub**, and a **Help & Guide**, custom aesthetic color themes, automatic syllabus text parsing, individual course target grades, an AI **Study Buddy Feedback Coach**, a What-If grade simulator, confetti celebrations, and JSON backup/restore capabilities.
 
 This project demonstrates the **Three-Layer Architecture** of information systems.
 
@@ -11,7 +11,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v6_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
+* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v7_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
 * **Persistence Layer:** Utilizes browser `localStorage` to securely save and load all user records, individual course target percentages, custom themes, and goal settings in JSON format.
 * **Backup & Restore System:** Supports complete JSON file export and import, allowing users to download local backups of their semester data or restore previous records seamlessly.
 
@@ -24,7 +24,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 * **GPA & Goal Engine:** Computes current semester GPA using credit hour weights and contrasts it against target GPA goals to generate automated on-track status alerts and catch-up insights.
 
 ### 3. User Interface Layer (Presentation)
-* **Personalized Onboarding Modal:** Greets first-time users and stores their name to power a customized greeting banner and rotating daily academic motivation quotes.
+* **Interactive Onboarding Tour Modal:** Greets first-time users, captures their name, and guides them through a step-by-step product walkthrough with full skip functionality.
 * **Interactive Home Dashboard:** Switch effortlessly between your **Enrolled Courses** grid (displaying live grades vs. individual targets), **GPA & Goals Hub**, and **Help & Guide** documentation tab.
 * **Responsive Form Grid:** Optimized CSS layouts for assignment entry and syllabus weights ensuring fluid alignment and zero overflow on all screen sizes.
 * **Dynamic Theme Engine:** Applies distinct color palettes (Pink, Purple, Teal, Yellow, Indigo) customized per course tile and workspace view.
@@ -34,6 +34,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 
 ## 🚀 Key Features
 
+* 🗺️ **Interactive Onboarding Tour:** Step-by-step guided walkthrough for first-time visitors with an option to skip anytime.
 * 📱 **Responsive Input Grids:** Cleanly aligned form fields for assignment logging that fit perfectly within container boundaries on any screen size.
 * 🎯 **Individual Course Target Grades:** Set a specific target percentage for each class and view live grade vs. target indicators directly on your course cards and home dashboard.
 * 🤖 **Study Buddy Feedback Coach:** Get automated advice inside each course analyzing your grade gap and pointing out lowest-scoring assignments to focus on.
