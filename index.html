@@ -10,15 +10,41 @@
 </head>
 <body class="theme-pink">
 
-    <!-- FIRST-TIME USER SETUP MODAL -->
+    <!-- FIRST-TIME USER SETUP & TUTORIAL MODAL -->
     <div id="welcome-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <h2>Welcome to CourseClear! 🎓</h2>
-            <p>Let's personalize your experience. What is your name?</p>
-            <div class="form-group" style="margin: 1rem 0;">
-                <input type="text" id="setup-name-input" placeholder="e.g., Olivia">
+            <!-- Step 0: Name Input -->
+            <div id="modal-step-name" class="modal-step">
+                <h2>Welcome to CourseClear! 🎓</h2>
+                <p>Let's personalize your experience. What is your name?</p>
+                <div class="form-group" style="margin: 1.25rem 0;">
+                    <input type="text" id="setup-name-input" placeholder="e.g., Olivia">
+                </div>
+                <button id="setup-name-btn" class="btn-primary" style="width: 100%;">Continue</button>
             </div>
-            <button id="setup-save-btn" class="btn-primary" style="width: 100%;">Get Started</button>
+
+            <!-- Step 1: Tour Intro Prompt -->
+            <div id="modal-step-intro" class="modal-step hidden">
+                <h2 id="tour-welcome-title">Nice to meet you! 👋</h2>
+                <p>Would you like a quick 1-minute walkthrough of how CourseClear works?</p>
+                <div class="modal-btn-row" style="margin-top: 1.5rem;">
+                    <button id="start-tour-btn" class="btn-primary" style="flex: 1;">Take Quick Tour</button>
+                    <button id="skip-tour-btn" class="btn-secondary" style="flex: 1;">Skip Tutorial</button>
+                </div>
+            </div>
+
+            <!-- Interactive Tour Card (Steps 2-5) -->
+            <div id="modal-step-tour" class="modal-step hidden">
+                <div class="tour-badge" id="tour-step-badge">Step 1 of 4</div>
+                <h2 id="tour-step-title">Courses & Themes</h2>
+                <div id="tour-step-body" class="tour-body-text">
+                    Add all your classes, assign credit hours, set target grades, and personalize each course with custom color themes (Pink, Purple, Teal, Yellow, Indigo)!
+                </div>
+                <div class="modal-btn-row" style="margin-top: 1.5rem;">
+                    <button id="tour-skip-anytime-btn" class="btn-outline" style="flex: 1;">Skip</button>
+                    <button id="tour-next-btn" class="btn-primary" style="flex: 1;">Next →</button>
+                </div>
+            </div>
         </div>
     </div>
 
