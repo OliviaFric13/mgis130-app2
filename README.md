@@ -11,7 +11,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v7_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
+* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v8_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
 * **Persistence Layer:** Utilizes browser `localStorage` to securely save and load all user records, individual course target percentages, custom themes, and goal settings in JSON format.
 * **Backup & Restore System:** Supports complete JSON file export and import, allowing users to download local backups of their semester data or restore previous records seamlessly.
 
