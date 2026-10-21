@@ -18,7 +18,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v8_data');
+    const raw = localStorage.getItem('courseclear_v9_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -33,27 +33,26 @@ const quotes = [
     "🎯 'Focus on progress, not perfection.'"
 ];
 
-// Tutorial Tour Steps Content
 const tourSteps = [
     {
         badge: "Step 1 of 4",
         title: "Courses & Themes 🎨",
-        text: "Add all your classes, assign credit hours, set target percentage grades, and customize each course tile with aesthetic color themes (Pink, Purple, Teal, Yellow, Indigo)."
+        text: "Add your classes, assign credit hours, set target percentage grades, and customize each course tile with aesthetic color themes."
     },
     {
         badge: "Step 2 of 4",
         title: "Quick Syllabus Importer ⚡",
-        text: "Don't manually type categories! Paste syllabus grading text (e.g. 'Exams 40%, Homework 30%') and CourseClear will automatically parse and create weighted categories totaling 100%."
+        text: "Expand the Course Setup drawer to paste syllabus grading text (e.g. 'Exams 40%, Homework 30%') and auto-fill category weights."
     },
     {
         badge: "Step 3 of 4",
         title: "Study Buddy & What-If Simulator 🤖",
-        text: "Your AI Study Buddy analyzes your lowest-scoring work and recommends study tips. Use the What-If Simulator to test hypothetical future scores before official grades post!"
+        text: "Whenever you log a grade, your reactive Study Buddy instantly analyzes your work and gives tailored advice. Use the simulator drawer to test future scores!"
     },
     {
         badge: "Step 4 of 4",
         title: "GPA Goals & Data Backup 🎯",
-        text: "Track your overall semester target GPA under the 'GPA & Goals' tab and export/import JSON backup files anytime so you never lose your progress."
+        text: "Track your overall semester target GPA under the 'GPA & Goals' tab and export/import JSON backup files anytime."
     }
 ];
 
@@ -79,7 +78,6 @@ function showModalStep(stepId) {
 }
 
 function bindEvents() {
-    // Step 0: Name Save
     document.getElementById('setup-name-btn').onclick = () => {
         const name = document.getElementById('setup-name-input').value.trim();
         if (name) {
@@ -92,7 +90,6 @@ function bindEvents() {
         }
     };
 
-    // Step 1: Tour Intro Choices
     document.getElementById('start-tour-btn').onclick = () => {
         currentTourIndex = 0;
         renderTourStep();
@@ -103,7 +100,6 @@ function bindEvents() {
         document.getElementById('welcome-modal').classList.add('hidden');
     };
 
-    // Step 2: Tour Progression & Skip
     document.getElementById('tour-skip-anytime-btn').onclick = () => {
         document.getElementById('welcome-modal').classList.add('hidden');
     };
@@ -118,7 +114,6 @@ function bindEvents() {
         }
     };
 
-    // App Navigation
     document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
     document.getElementById('tab-goals-btn').onclick = () => { appData.activeTab = 'goals'; saveAndRender(); };
     document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
@@ -139,13 +134,22 @@ function bindEvents() {
         saveAndRender();
     };
 
+    // Live inline update for course name
+    document.getElementById('course-name-input').oninput = (e) => {
+        const c = getCurrentCourse();
+        if (c) {
+            c.name = e.target.value.trim() || "Untitled Course";
+            localStorage.setItem('courseclear_v9_data', JSON.stringify(appData));
+        }
+    };
+
     document.getElementById('save-course-btn').onclick = () => {
         const c = getCurrentCourse();
         if (!c) return;
-        c.name = document.getElementById('course-name-input').value.trim() || c.name;
         c.credits = parseInt(document.getElementById('course-credits-input').value) || 3;
         c.targetGrade = parseFloat(document.getElementById('course-target-input').value) || 90;
         saveAndRender();
+        alert("Course settings saved!");
     };
 
     document.getElementById('delete-course-btn').onclick = () => {
@@ -295,7 +299,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v8_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v9_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -423,6 +427,9 @@ function renderCourseDetail() {
     document.getElementById('course-name-input').value = c.name === "Untitled Course" ? "" : c.name;
     document.getElementById('course-credits-input').value = c.credits || 3;
     document.getElementById('course-target-input').value = c.targetGrade || 90;
+    
+    document.getElementById('course-credits-badge').textContent = `${c.credits} Credits`;
+    document.getElementById('course-target-badge').textContent = `Target: ${c.targetGrade || 90}%`;
 
     renderStudyBuddy(c);
 
