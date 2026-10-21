@@ -6,15 +6,11 @@ const defaultState = {
     courses: [
         {
             id: "course_1",
-            name: "MGIS 130",
+            name: "Untitled Course",
             credits: 3,
             targetGrade: 90,
             theme: "theme-pink",
-            categories: [
-                { id: "cat1", name: "Homework", weight: 30 },
-                { id: "cat2", name: "Quizzes", weight: 30 },
-                { id: "cat3", name: "Exams", weight: 40 }
-            ],
+            categories: [],
             assignments: []
         }
     ]
@@ -22,7 +18,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v7_data');
+    const raw = localStorage.getItem('courseclear_v8_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -132,7 +128,7 @@ function bindEvents() {
         const newId = 'course_' + Date.now();
         appData.courses.push({
             id: newId,
-            name: "New Course " + (appData.courses.length + 1),
+            name: "Untitled Course " + (appData.courses.length + 1),
             credits: 3,
             targetGrade: 90,
             theme: availableThemes[appData.courses.length % availableThemes.length],
@@ -299,7 +295,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v7_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v8_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -424,7 +420,7 @@ function renderCourseDetail() {
 
     document.body.className = c.theme || 'theme-pink';
     document.getElementById('theme-selector').value = c.theme || 'theme-pink';
-    document.getElementById('course-name-input').value = c.name;
+    document.getElementById('course-name-input').value = c.name === "Untitled Course" ? "" : c.name;
     document.getElementById('course-credits-input').value = c.credits || 3;
     document.getElementById('course-target-input').value = c.targetGrade || 90;
 
