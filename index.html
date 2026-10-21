@@ -127,10 +127,10 @@
                         <p>Instead of manually typing every category, paste your syllabus breakdown text (e.g., <em>"Exams 40%, Homework 30%"</em>) into the Quick Syllabus Importer and click auto-fill. Make sure your category weights total exactly 100%!</p>
 
                         <h3>3. Study Buddy Feedback Coach</h3>
-                        <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips.</p>
+                        <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips right after you log a score.</p>
 
                         <h3>4. What-If Grade Simulator</h3>
-                        <p>Inside any course detail view, use the What-If Simulator to test hypothetical future scores and see how they impact your overall percentage instantly.</p>
+                        <p>Inside any course detail view, expand the simulator drawer to test hypothetical future scores and see how they impact your overall percentage instantly.</p>
 
                         <h3>5. Backup & Restore</h3>
                         <p>Go to the <strong>GPA & Goals Hub</strong> anytime to export your data as a JSON file or import a past backup so you never lose your progress.</p>
@@ -139,7 +139,7 @@
             </div>
         </div>
 
-        <!-- COURSE DETAIL VIEW -->
+        <!-- COURSE DETAIL VIEW (REORGANIZED FOR SIMPLICITY) -->
         <div id="course-detail-view" class="view-section hidden">
             <div class="detail-nav-bar">
                 <button id="back-to-home-btn" class="btn-outline">← Back to Dashboard</button>
@@ -156,67 +156,33 @@
             </div>
 
             <main>
-                <!-- COURSE INFO & TARGET GRADE -->
-                <section class="card">
-                    <h2>Course Info & Goals</h2>
-                    <div class="course-setup-row">
-                        <div class="form-group" style="flex: 2;">
-                            <label for="course-name-input">Course Name / Code</label>
-                            <input type="text" id="course-name-input" placeholder="e.g., MGMT 340">
+                <!-- TOP ZONE: LIVE STATUS & TARGET OVERVIEW -->
+                <section class="card course-status-card">
+                    <div class="status-header-row">
+                        <div>
+                            <input type="text" id="course-name-input" class="inline-name-input" placeholder="Course Name">
+                            <div class="course-meta-pills">
+                                <span id="course-credits-badge" class="meta-pill">3 Credits</span>
+                                <span id="course-target-badge" class="meta-pill">Target: 90%</span>
+                            </div>
                         </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label for="course-credits-input">Credits</label>
-                            <select id="course-credits-input">
-                                <option value="1">1 Credit</option>
-                                <option value="2">2 Credits</option>
-                                <option value="3" selected>3 Credits</option>
-                                <option value="4">4 Credits</option>
-                            </select>
+                        <div class="status-grades-display">
+                            <div class="grade-pill">
+                                <span class="pill-label">Live %</span>
+                                <span id="overall-percentage" class="pill-val">0.00%</span>
+                            </div>
+                            <div class="grade-pill letter-pill">
+                                <span class="pill-label">Grade</span>
+                                <span id="overall-letter" class="pill-val">-</span>
+                            </div>
                         </div>
-                        <div class="form-group" style="flex: 1.5;">
-                            <label for="course-target-input">Target Grade (%)</label>
-                            <input type="number" step="1" min="50" max="100" id="course-target-input" placeholder="90">
-                            <span class="field-hint">Input the grade (%) you hope to achieve in this course</span>
-                        </div>
-                        <button id="save-course-btn" class="btn-primary">Update</button>
-                        <button id="delete-course-btn" class="btn-secondary-outline">Delete</button>
                     </div>
                 </section>
 
-                <!-- STUDY BUDDY ADVISOR -->
-                <section class="card study-buddy-card">
-                    <h2>🤖 Study Buddy Advisor</h2>
-                    <div id="study-buddy-container"></div>
-                </section>
-
-                <section class="card">
-                    <h2>⚡ Quick Syllabus Importer</h2>
-                    <p class="section-desc">Paste your syllabus grading breakdown text below (e.g., "Exams 40%, Homework 30%") and click parse to set weights automatically.</p>
-                    <div class="importer-row">
-                        <textarea id="syllabus-text-input" placeholder="Paste grading breakdown text here..."></textarea>
-                        <button id="parse-syllabus-btn" class="btn-secondary">Auto-Fill Categories</button>
-                    </div>
-                </section>
-
-                <section class="card">
-                    <h2>Syllabus Category Weights (Must total 100%)</h2>
-                    <form id="category-form" class="category-form-grid">
-                        <div class="form-group">
-                            <label for="cat-name">Category Name</label>
-                            <input type="text" id="cat-name" placeholder="e.g., Exams" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="cat-weight">Weight (%)</label>
-                            <input type="number" id="cat-weight" min="1" max="100" placeholder="40" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Add Category</button>
-                    </form>
-                    <div id="category-list-container" class="badge-container"></div>
-                    <p id="weight-warning" class="warning-text"></p>
-                </section>
-
-                <section class="card">
-                    <h2>Add Assignment Score</h2>
+                <!-- MIDDLE ZONE: PRIMARY ACTION (ADD ASSIGNMENT) -->
+                <section class="card primary-action-card">
+                    <h2>📝 Add Assignment Score</h2>
+                    <p class="section-desc">Log your points earned to instantly recalculate your grade and activate your Study Buddy feedback.</p>
                     <form id="assignment-form" class="assignment-form-grid">
                         <div class="form-group">
                             <label for="assign-name">Assignment Name</label>
@@ -236,46 +202,17 @@
                             <label for="assign-possible">Points Possible</label>
                             <input type="number" step="0.1" id="assign-possible" placeholder="50" required>
                         </div>
-                        <button type="submit" class="btn-primary">Add Assignment</button>
+                        <button type="submit" class="btn-primary">Add Assignment & Get Feedback</button>
                     </form>
                 </section>
 
-                <!-- WHAT-IF GRADE SIMULATOR -->
-                <section class="card simulator-card">
-                    <h2>🔮 What-If Grade Simulator</h2>
-                    <p class="section-desc">Test a hypothetical score for an upcoming assignment (e.g., what if I get 95/100 on the final exam?).</p>
-                    <div class="simulator-row">
-                        <div class="form-group" style="flex: 2;">
-                            <label for="sim-category">Category</label>
-                            <select id="sim-category">
-                                <option value="" disabled selected>Select category</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label for="sim-earned">Hypothetical Earned</label>
-                            <input type="number" step="0.1" id="sim-earned" placeholder="e.g., 90">
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label for="sim-possible">Hypothetical Possible</label>
-                            <input type="number" step="0.1" id="sim-possible" placeholder="e.g., 100">
-                        </div>
-                    </div>
-                    <div class="sim-result-box" id="sim-result-text">
-                        Adjust the numbers above to preview your hypothetical final grade!
-                    </div>
+                <!-- REACTIVE STUDY BUDDY ADVISOR -->
+                <section class="card study-buddy-card">
+                    <h2>🤖 Study Buddy Advisor</h2>
+                    <div id="study-buddy-container"></div>
                 </section>
 
-                <section class="card summary-card">
-                    <div class="metric highlight">
-                        <span class="metric-label">Overall Percentage</span>
-                        <span id="overall-percentage" class="metric-value">0.00%</span>
-                    </div>
-                    <div class="metric highlight-letter">
-                        <span class="metric-label">Estimated Letter Grade</span>
-                        <span id="overall-letter" class="metric-value">-</span>
-                    </div>
-                </section>
-
+                <!-- RECORDED ASSIGNMENTS TABLE -->
                 <section class="card">
                     <div class="table-header">
                         <h2>Recorded Assignments</h2>
@@ -300,6 +237,83 @@
                         </table>
                     </div>
                 </section>
+
+                <!-- COLLAPSIBLE SETUP DRAWER (HIDDEN BY DEFAULT TO REDUCE CLUTTER) -->
+                <details class="card collapsible-drawer">
+                    <summary class="drawer-summary">⚙️ Course Setup & Syllabus Importer (Click to Expand)</summary>
+                    <div class="drawer-content">
+                        <div class="course-setup-row" style="margin-top: 1rem;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="course-credits-input">Credits</label>
+                                <select id="course-credits-input">
+                                    <option value="1">1 Credit</option>
+                                    <option value="2">2 Credits</option>
+                                    <option value="3" selected>3 Credits</option>
+                                    <option value="4">4 Credits</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="course-target-input">Target Grade (%)</label>
+                                <input type="number" step="1" min="50" max="100" id="course-target-input" placeholder="90">
+                            </div>
+                            <button id="save-course-btn" class="btn-primary">Save Settings</button>
+                            <button id="delete-course-btn" class="btn-secondary-outline">Delete Course</button>
+                        </div>
+
+                        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
+
+                        <h3>⚡ Quick Syllabus Importer</h3>
+                        <p class="section-desc">Paste your syllabus grading breakdown text below (e.g., "Exams 40%, Homework 30%") and click parse to set weights automatically.</p>
+                        <div class="importer-row">
+                            <textarea id="syllabus-text-input" placeholder="Paste grading breakdown text here..."></textarea>
+                            <button id="parse-syllabus-btn" class="btn-secondary">Auto-Fill Categories</button>
+                        </div>
+
+                        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
+
+                        <h3>Syllabus Category Weights (Must total 100%)</h3>
+                        <form id="category-form" class="category-form-grid">
+                            <div class="form-group">
+                                <label for="cat-name">Category Name</label>
+                                <input type="text" id="cat-name" placeholder="e.g., Exams" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cat-weight">Weight (%)</label>
+                                <input type="number" id="cat-weight" min="1" max="100" placeholder="40" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Add Category</button>
+                        </form>
+                        <div id="category-list-container" class="badge-container"></div>
+                        <p id="weight-warning" class="warning-text"></p>
+                    </div>
+                </details>
+
+                <!-- COLLAPSIBLE SIMULATOR DRAWER -->
+                <details class="card collapsible-drawer simulator-drawer">
+                    <summary class="drawer-summary">🔮 What-If Grade Simulator (Click to Expand)</summary>
+                    <div class="drawer-content" style="margin-top: 1rem;">
+                        <p class="section-desc">Test a hypothetical score for an upcoming assignment (e.g., what if I get 95/100 on the final exam?).</p>
+                        <div class="simulator-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label for="sim-category">Category</label>
+                                <select id="sim-category">
+                                    <option value="" disabled selected>Select category</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="sim-earned">Hypothetical Earned</label>
+                                <input type="number" step="0.1" id="sim-earned" placeholder="e.g., 90">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="sim-possible">Hypothetical Possible</label>
+                                <input type="number" step="0.1" id="sim-possible" placeholder="e.g., 100">
+                            </div>
+                        </div>
+                        <div class="sim-result-box" id="sim-result-text">
+                            Adjust the numbers above to preview your hypothetical final grade!
+                        </div>
+                    </div>
+                </details>
             </main>
         </div>
     </div>
