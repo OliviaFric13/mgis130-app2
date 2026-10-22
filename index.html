@@ -48,6 +48,67 @@
         </div>
     </div>
 
+    <!-- COURSE SYLLABUS FIRST SETUP MODAL -->
+    <div id="syllabus-setup-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-large">
+            <div class="modal-step">
+                <span class="tour-badge">Step 1: Course Setup</span>
+                <h2 id="syllabus-modal-course-title">Set Up Course Syllabus</h2>
+                <p class="section-desc">Before logging grades, let's configure your syllabus breakdown or category weights for this course.</p>
+                
+                <div class="syllabus-setup-tabs">
+                    <button id="setup-tab-parse-btn" class="dash-tab active">⚡ Paste Syllabus</button>
+                    <button id="setup-tab-manual-btn" class="dash-tab">✍️ Manual Categories</button>
+                </div>
+
+                <!-- Parse Option -->
+                <div id="setup-subview-parse" style="margin-top: 1rem;">
+                    <div class="importer-row">
+                        <textarea id="modal-syllabus-text" placeholder="Paste syllabus text here (e.g. Exams 40%, Homework 30%, Projects 30%)..."></textarea>
+                        <button id="modal-parse-btn" class="btn-secondary">Auto-Fill Categories</button>
+                    </div>
+                </div>
+
+                <!-- Manual Option -->
+                <div id="setup-subview-manual" class="hidden" style="margin-top: 1rem;">
+                    <form id="modal-category-form" class="category-form-grid">
+                        <div class="form-group">
+                            <label for="modal-cat-name">Category Name</label>
+                            <input type="text" id="modal-cat-name" placeholder="e.g., Exams">
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-cat-weight">Weight (%)</label>
+                            <input type="number" id="modal-cat-weight" min="1" max="100" placeholder="40">
+                        </div>
+                        <button type="submit" class="btn-primary">Add</button>
+                    </form>
+                </div>
+
+                <div id="modal-category-badges" class="badge-container" style="margin-top: 1rem;"></div>
+                <p id="modal-weight-warning" class="warning-text"></p>
+
+                <div class="modal-btn-row" style="margin-top: 1.5rem;">
+                    <button id="finish-syllabus-setup-btn" class="btn-primary" style="width: 100%;">Save & Start Logging Grades →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIRST-TIME GPA GOAL SETUP MODAL -->
+    <div id="gpa-setup-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-step">
+                <span class="tour-badge">🎯 Semester Goal</span>
+                <h2>Set Your Semester Goal</h2>
+                <p style="margin-top: 0.5rem;">Insert the overall GPA you hope to achieve this semester:</p>
+                <div class="form-group" style="margin: 1.25rem 0;">
+                    <input type="number" step="0.05" min="2.0" max="4.0" id="first-time-gpa-input" value="3.75" placeholder="e.g., 3.75">
+                </div>
+                <button id="save-first-time-gpa-btn" class="btn-primary" style="width: 100%;">Set Target & View Dashboard 🎉</button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- App Header -->
         <header class="app-header">
@@ -139,7 +200,7 @@
             </div>
         </div>
 
-        <!-- COURSE DETAIL VIEW (REORGANIZED FOR SIMPLICITY) -->
+        <!-- COURSE DETAIL VIEW -->
         <div id="course-detail-view" class="view-section hidden">
             <div class="detail-nav-bar">
                 <button id="back-to-home-btn" class="btn-outline">← Back to Dashboard</button>
@@ -238,9 +299,9 @@
                     </div>
                 </section>
 
-                <!-- COLLAPSIBLE SETUP DRAWER (HIDDEN BY DEFAULT TO REDUCE CLUTTER) -->
-                <details class="card collapsible-drawer">
-                    <summary class="drawer-summary">⚙️ Course Setup & Syllabus Importer (Click to Expand)</summary>
+                <!-- COLLAPSIBLE SETUP DRAWER -->
+                <details class="card collapsible-drawer" id="course-setup-drawer">
+                    <summary class="drawer-summary">⚙️ Course Setup & Syllabus Weights (Click to Edit)</summary>
                     <div class="drawer-content">
                         <div class="course-setup-row" style="margin-top: 1rem;">
                             <div class="form-group" style="flex: 1;">
