@@ -2,7 +2,7 @@
 
 **Tagline:** Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.
 
-CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. Featuring a streamlined, progressive-disclosure interface designed on professor feedback, the app hides setup complexity behind clean collapsible drawers while putting daily grade logging and the reactive **Study Buddy Feedback Coach** front and center.
+CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. Designed with a **guided, step-by-step onboarding flow** and **progressive disclosure architecture**, the app leads users through setting up course syllabus structures first, configuring semester GPA goals, and logging assignments—all while providing instant, reactive feedback through an AI **Study Buddy Feedback Coach**.
 
 This project demonstrates the **Three-Layer Architecture** of information systems.
 
@@ -11,7 +11,7 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v9_data`) holding user profiles, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
+* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v10_data`) holding user profile info, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
 * **Persistence Layer:** Utilizes browser `localStorage` to securely save and load all user records, individual course target percentages, custom themes, and goal settings in JSON format.
 * **Backup & Restore System:** Supports complete JSON file export and import, allowing users to download local backups of their semester data or restore previous records seamlessly.
 
@@ -24,9 +24,9 @@ This project demonstrates the **Three-Layer Architecture** of information system
 * **GPA & Goal Engine:** Computes current semester GPA using credit hour weights and contrasts it against target GPA goals to generate automated on-track status alerts and catch-up insights.
 
 ### 3. User Interface Layer (Presentation)
-* **Progressive Disclosure Architecture:** Streamlines the course workspace by placing daily actions (logging assignments and viewing feedback) at the top and tucking secondary setup tools (syllabus importer, category weights) and simulators into clean collapsible drawers.
-* **Interactive Onboarding Tour Modal:** Greets first-time users, captures their name, and guides them through a step-by-step product walkthrough with full skip functionality.
-* **Interactive Home Dashboard:** Switch effortlessly between your **Enrolled Courses** grid (displaying live grades vs. individual targets), **GPA & Goals Hub**, and **Help & Guide** documentation tab.
+* **Guided Course & Syllabus Onboarding:** Automatically launches a dedicated setup modal whenever a user adds or opens a course without categories, prioritizing syllabus input (via auto-parse or manual entry) before unlocking grade entry.
+* **Guided Step-by-Step GPA Goal Setup:** Prompts the user with an interactive screen upon opening the GPA & Goals tab for the first time to define their overall semester GPA target before revealing the full analytics hub.
+* **Progressive Disclosure Architecture:** Streamlines the main course workspace by placing daily actions (logging assignments and viewing feedback) front and center while tucking secondary settings and simulators into clean collapsible drawers.
 * **Dynamic Theme Engine:** Applies distinct color palettes (Pink, Purple, Teal, Yellow, Indigo) customized per course tile and workspace view.
 * **Confetti Delighters:** Triggers celebratory particle animations via `canvas-confetti` whenever an assignment score of 100% or an `A` grade is achieved.
 
@@ -34,21 +34,22 @@ This project demonstrates the **Three-Layer Architecture** of information system
 
 ## 🚀 Key Features
 
-* 🗂️ **Simplified Course Layout:** Collapsible setup drawers and prominent daily action cards eliminate cognitive overload and reduce visual clutter.
-* 🤖 **Reactive Study Buddy Feedback Coach:** Instantly evaluates new score entries against your target grade and highlights focus areas.
-* 🗺️ **Interactive Onboarding Tour:** Step-by-step guided walkthrough for first-time visitors with an option to skip anytime.
-* 🎯 **Individual Course Target Grades:** Set a specific target percentage for each class and view live grade vs. target indicators directly on your course cards.
-* 🎉 **Confetti Celebrations:** Automated celebratory effects when logging top-tier assignment scores.
-* 🔮 **What-If Grade Simulator:** Expandable drawer to test hypothetical scores for upcoming assignments.
-* 📥 **JSON Data Backup & Export:** Easily download your semester data as a backup file or restore from a previous save.
+* 📋 **Syllabus-First Guided Setup:** A step-by-step overlay opens when creating or joining a course so users set up their grading structure first before entering grades.
+* 🎯 **Interactive GPA Target Setup:** First-time setup screen in the GPA Hub that asks for your semester GPA goal before showing detailed progress insights.
+* 🤖 **Reactive Study Buddy Feedback Coach:** Instantly evaluates new score entries against your target grade and highlights focus areas to improve.
+* 🗂️ **Simplified Collapsible Workspace:** Keeps syllabus editing and grade simulators neatly tucked away in expandable drawers to eliminate clutter.
+* 🗺️ **Interactive Product Tour:** Step-by-step guided walkthrough for first-time visitors with full skip options.
+* 🎉 **Confetti Celebrations:** Automated celebratory particle effects when logging top-tier scores or reaching semester milestones.
+* 🔮 **What-If Grade Simulator:** Test hypothetical scores for upcoming deliverables to preview final projected grades.
+* 📥 **JSON Data Backup & Export:** Download your semester data as a local backup file or restore from a past save anytime.
 
 ---
 
 ## 🛠️ Built With
 
 * **HTML5** – Application Layout, Modals & Collapsible Drawers
-* **CSS3** – Custom Variables, Grids, and Color Themes
-* **JavaScript (ES6+)** – DOM Manipulation, State Management & Parsing
+* **CSS3** – Custom Variables, Responsive Grids, and Color Themes
+* **JavaScript (ES6+)** – DOM Manipulation, State Management & Regex Parsing
 * **Canvas Confetti Library** – Celebration Animations
 * **Google Gemini AI** – Architecture Planning & Development Assistance
 * **GitHub Pages** – Web Hosting & Deployment
