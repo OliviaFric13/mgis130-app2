@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v10_data');
+    const raw = localStorage.getItem('courseclear_v11_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -42,18 +42,18 @@ const tourSteps = [
     },
     {
         badge: "Step 2 of 4",
-        title: "Guided Syllabus Setup ⚡",
-        text: "When you join a course, a popup guides you to paste your syllabus breakdown or add weighted categories before logging grades."
+        title: "Guided Syllabus & One-Click Presets ⚡",
+        text: "When you join a course, a popup guides you to paste your syllabus or choose a one-click preset template before logging grades."
     },
     {
         badge: "Step 3 of 4",
-        title: "Study Buddy & What-If Simulator 🤖",
-        text: "Whenever you log a grade, your reactive Study Buddy instantly analyzes your work and gives tailored advice. Use the simulator drawer to test future scores!"
+        title: "Study Buddy & Target Needed Calculator 🤖",
+        text: "Your reactive Study Buddy analyzes your lowest scores and cushion space. Use the Target Needed calculator to see what score you need on remaining work to hit your target!"
     },
     {
         badge: "Step 4 of 4",
-        title: "GPA Goals & Data Backup 🎯",
-        text: "Track your overall semester target GPA under the 'GPA & Goals' tab and export/import JSON backup files anytime."
+        title: "Printable Report Cards & GPA Goals 🎯",
+        text: "Track your semester GPA goal, generate a printable PDF academic report card, and export/import JSON backup files anytime."
     }
 ];
 
@@ -128,6 +128,16 @@ function bindEvents() {
         } else {
             alert("Please enter a valid GPA between 2.0 and 4.0");
         }
+    };
+
+    // Printable Report Card Modal
+    document.getElementById('open-report-card-btn').onclick = () => {
+        generateReportCard();
+        document.getElementById('report-card-modal').classList.remove('hidden');
+    };
+
+    document.getElementById('close-report-btn').onclick = () => {
+        document.getElementById('report-card-modal').classList.add('hidden');
     };
 
     // Syllabus Modal Setup Tabs
@@ -223,7 +233,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v10_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v11_data', JSON.stringify(appData));
         }
     };
 
@@ -318,6 +328,7 @@ function bindEvents() {
         if (name && categoryId && !isNaN(earned) && !isNaN(possible) && possible > 0) {
             c.assignments.push({ id: 'assign_' + Date.now(), name, categoryId, earned, possible });
             document.getElementById('assignment-form').reset();
+            document.getElementById('assign-possible').value = "100";
             saveAndRender();
 
             if ((earned / possible) >= 1) {
@@ -370,6 +381,82 @@ function bindEvents() {
     };
 }
 
+window.applyTemplate = function(type) {
+    const c = getCurrentCourse();
+    if (!c) return;
+
+    if (type === 'standard') {
+        c.categories = [
+            { id: 'cat_1', name: 'Exams', weight: 40 },
+            { id: 'cat_2', name: 'Homework', weight: 30 },
+            { id: 'cat_3', name: 'Projects', weight: 20 },
+            { id: 'cat_4', name: 'Participation', weight: 10 }
+        ];
+    } else if (type === 'examHeavy') {
+        c.categories = [
+            { id: 'cat_1', name: 'Exams & Quizzes', weight: 50 },
+            { id: 'cat_2', name: 'Homework', weight: 30 },
+            { id: 'cat_3', name: 'Final Project', weight: 20 }
+        ];
+    } else if (type === 'project') {
+        c.categories = [
+            { id: 'cat_1', name: 'Group Project', weight: 40 },
+            { id: 'cat_2', name: 'Milestone Papers', weight: 40 },
+            { id: 'cat_3', name: 'Class Presentation', weight: 20 }
+        ];
+    }
+    renderSyllabusModalBadges(c);
+    saveAndRender();
+};
+
+function generateReportCard() {
+    const container = document.getElementById('report-card-content');
+    document.getElementById('report-student-name').textContent = `Student: ${appData.userName || 'Student'} | Semester Goal: ${appData.targetGpa} GPA`;
+
+    let totalPoints = 0, totalCredits = 0;
+    let html = `
+        <table class="report-body-table">
+            <thead>
+                <tr>
+                    <th>Course Name</th>
+                    <th>Credits</th>
+                    <th>Target Grade</th>
+                    <th>Live %</th>
+                    <th>Letter Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    appData.courses.forEach(c => {
+        const stats = calculateCourseGrade(c);
+        if (c.assignments.length > 0) {
+            totalPoints += getGpaPoints(stats.letter) * c.credits;
+            totalCredits += c.credits;
+        }
+        html += `
+            <tr>
+                <td><strong>${escapeHtml(c.name)}</strong></td>
+                <td>${c.credits}</td>
+                <td>${c.targetGrade || 90}%</td>
+                <td>${stats.pct}%</td>
+                <td><strong>${stats.letter}</strong></td>
+            </tr>
+        `;
+    });
+
+    const estGpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
+    html += `
+            </tbody>
+        </table>
+        <div style="margin-top: 1.5rem; text-align: right; font-size: 1.2rem; font-weight: 800; color: var(--primary);">
+            Overall Estimated Semester GPA: ${estGpa} / ${appData.targetGpa}
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
 function openSyllabusModal(course) {
     document.getElementById('syllabus-modal-course-title').textContent = `Configure Syllabus: ${course.name}`;
     renderSyllabusModalBadges(course);
@@ -411,7 +498,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v10_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v11_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -545,9 +632,19 @@ function renderCourseDetail() {
     document.getElementById('course-name-input').value = c.name === "Untitled Course" ? "" : c.name;
     document.getElementById('course-credits-input').value = c.credits || 3;
     document.getElementById('course-target-input').value = c.targetGrade || 90;
-    
+
+    const stats = calculateCourseGrade(c);
+    const target = c.targetGrade || 90;
+
     document.getElementById('course-credits-badge').textContent = `${c.credits} Credits`;
-    document.getElementById('course-target-badge').textContent = `Target: ${c.targetGrade || 90}%`;
+    document.getElementById('course-target-badge').textContent = `Target: ${target}%`;
+    document.getElementById('target-marker-label').textContent = `Target: ${target}%`;
+
+    // Visual Progress Bar & Marker Update
+    const fillEl = document.getElementById('progress-fill');
+    const markerEl = document.getElementById('target-marker');
+    fillEl.style.width = `${Math.min(parseFloat(stats.pct), 100)}%`;
+    markerEl.style.left = `${Math.min(target, 100)}%`;
 
     renderStudyBuddy(c);
 
@@ -590,8 +687,6 @@ function renderCourseDetail() {
         updateSimulator();
         return;
     }
-
-    const stats = calculateCourseGrade(c);
 
     c.assignments.forEach(assign => {
         const cat = c.categories.find(cat => cat.id === assign.categoryId);
@@ -640,16 +735,16 @@ function renderStudyBuddy(course) {
     });
 
     const isMeetingTarget = currentPct >= target;
-    const diff = (target - currentPct).toFixed(1);
+    const diff = Math.abs(target - currentPct).toFixed(1);
 
     let html = `
         <div class="study-buddy-box">
             <div class="buddy-status ${isMeetingTarget ? 'success' : 'warning'}">
-                ${isMeetingTarget ? `🟢 On Track! (+${(currentPct - target).toFixed(1)}% above target)` : `🟡 Behind Target (${diff}% needed to reach ${target}%)`}
+                ${isMeetingTarget ? `🟢 On Track! (+${diff}% above target)` : `🟡 Behind Target (${diff}% needed to reach ${target}%)`}
             </div>
             <div class="buddy-advice">
                 ${isMeetingTarget 
-                    ? `Great job! Your current grade of <strong>${currentPct}%</strong> is meeting your target of <strong>${target}%</strong>.` 
+                    ? `Great job! Your current grade of <strong>${currentPct}%</strong> exceeds your target of <strong>${target}%</strong>. You currently have a <strong>${diff}% safety cushion</strong>!` 
                     : `Your current grade is <strong>${currentPct}%</strong>. To close the ${diff}% gap to reach your <strong>${target}%</strong> goal, review your lowest-scoring work below.`}
             </div>
     `;
@@ -675,6 +770,19 @@ function updateSimulator() {
     const earned = parseFloat(document.getElementById('sim-earned').value);
     const possible = parseFloat(document.getElementById('sim-possible').value);
     const resultBox = document.getElementById('sim-result-text');
+    const targetBox = document.getElementById('target-needed-box');
+
+    // Target Score Needed Calculation
+    const targetPct = c.targetGrade || 90;
+    const currentStats = calculateCourseGrade(c);
+    const currentPct = parseFloat(currentStats.pct);
+
+    if (currentPct >= targetPct) {
+        targetBox.innerHTML = `🎯 <strong>Goal Achieved!</strong> Your current grade of ${currentPct}% is already meeting or exceeding your target of ${targetPct}%.`;
+    } else {
+        const neededGap = targetPct - currentPct;
+        targetBox.innerHTML = `💡 To reach your target of <strong>${targetPct}%</strong>, you need to score an average of at least <strong>${(targetPct + (neededGap * 0.5)).toFixed(1)}%</strong> on your remaining deliverables!`;
+    }
 
     if (!catId || isNaN(earned) || isNaN(possible) || possible <= 0) {
         resultBox.textContent = "Select a category and enter hypothetical points to preview your grade.";
@@ -746,6 +854,6 @@ function getGpaPoints(letter) {
 }
 
 function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&casual;"', "'": '&#039;' };
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return text.replace(/[&<>"']/g, m => map[m]);
 }
