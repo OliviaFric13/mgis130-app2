@@ -33,7 +33,7 @@
                 </div>
             </div>
 
-            <!-- Interactive Tour Card (Steps 2-5) -->
+            <!-- Interactive Tour Card -->
             <div id="modal-step-tour" class="modal-step hidden">
                 <div class="tour-badge" id="tour-step-badge">Step 1 of 4</div>
                 <h2 id="tour-step-title">Courses & Themes</h2>
@@ -55,8 +55,18 @@
                 <span class="tour-badge">Step 1: Course Setup</span>
                 <h2 id="syllabus-modal-course-title">Set Up Course Syllabus</h2>
                 <p class="section-desc">Before logging grades, let's configure your syllabus breakdown or category weights for this course.</p>
-                
-                <div class="syllabus-setup-tabs">
+
+                <!-- One-Click Preset Templates -->
+                <div class="preset-template-box">
+                    <label>⚡ Quick Preset Templates:</label>
+                    <div class="preset-btn-row">
+                        <button type="button" class="btn-secondary" onclick="applyTemplate('standard')">Standard (40/30/20/10)</button>
+                        <button type="button" class="btn-secondary" onclick="applyTemplate('examHeavy')">Exam Heavy (50/30/20)</button>
+                        <button type="button" class="btn-secondary" onclick="applyTemplate('project')">Project Based (40/40/20)</button>
+                    </div>
+                </div>
+
+                <div class="syllabus-setup-tabs" style="margin-top: 1rem;">
                     <button id="setup-tab-parse-btn" class="dash-tab active">⚡ Paste Syllabus</button>
                     <button id="setup-tab-manual-btn" class="dash-tab">✍️ Manual Categories</button>
                 </div>
@@ -109,6 +119,25 @@
         </div>
     </div>
 
+    <!-- PRINTABLE SEMESTER REPORT CARD MODAL -->
+    <div id="report-card-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-large printable-report-card">
+            <div class="report-header">
+                <div>
+                    <h2 class="brand-title" style="font-size: 1.8rem;">CourseClear Academic Report</h2>
+                    <p id="report-student-name" style="font-weight: 600; color: var(--text-muted);">Student Progress Summary</p>
+                </div>
+                <button id="close-report-btn" class="btn-secondary-outline" style="height: auto; padding: 0.3rem 0.6rem;">&times; Close</button>
+            </div>
+            
+            <div id="report-card-content" class="report-body"></div>
+
+            <div class="modal-btn-row" style="margin-top: 1.5rem;">
+                <button onclick="window.print()" class="btn-primary" style="width: 100%;">🖨️ Print / Save as PDF</button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- App Header -->
         <header class="app-header">
@@ -137,8 +166,11 @@
             <!-- GPA Goals Tab -->
             <div id="subview-goals" class="subview-content hidden">
                 <div class="card">
-                    <h2>Semester Target Configuration</h2>
-                    <div class="goal-config-grid">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <h2>Semester Target Configuration</h2>
+                        <button id="open-report-card-btn" class="btn-secondary">📜 View Printable Report Card</button>
+                    </div>
+                    <div class="goal-config-grid" style="margin-top: 1rem;">
                         <div class="form-group" style="flex: 1;">
                             <label for="target-gpa-input">Target Semester GPA (2.0 – 4.0)</label>
                             <input type="number" step="0.05" min="2.0" max="4.0" id="target-gpa-input" value="3.75">
@@ -185,13 +217,13 @@
                         <p>From the home dashboard, click <strong>+ Add New Course</strong> or select an existing course card. Inside each course, you can set your credit hours, set a target grade, and pick an aesthetic color theme (Pink, Purple, Teal, Yellow, or Indigo).</p>
                         
                         <h3>2. Syllabus Importer & Weights</h3>
-                        <p>Instead of manually typing every category, paste your syllabus breakdown text (e.g., <em>"Exams 40%, Homework 30%"</em>) into the Quick Syllabus Importer and click auto-fill. Make sure your category weights total exactly 100%!</p>
+                        <p>Instead of manually typing every category, paste your syllabus breakdown text into the Quick Syllabus Importer or select one-click preset templates!</p>
 
                         <h3>3. Study Buddy Feedback Coach</h3>
                         <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips right after you log a score.</p>
 
-                        <h3>4. What-If Grade Simulator</h3>
-                        <p>Inside any course detail view, expand the simulator drawer to test hypothetical future scores and see how they impact your overall percentage instantly.</p>
+                        <h3>4. What-If Grade Simulator & Target Needed Calculator</h3>
+                        <p>Inside any course detail view, expand the simulator drawer to test hypothetical future scores AND calculate the exact score you need on remaining work to reach your target grade!</p>
 
                         <h3>5. Backup & Restore</h3>
                         <p>Go to the <strong>GPA & Goals Hub</strong> anytime to export your data as a JSON file or import a past backup so you never lose your progress.</p>
@@ -217,7 +249,7 @@
             </div>
 
             <main>
-                <!-- TOP ZONE: LIVE STATUS & TARGET OVERVIEW -->
+                <!-- TOP ZONE: LIVE STATUS & TARGET GAP PROGRESS BAR -->
                 <section class="card course-status-card">
                     <div class="status-header-row">
                         <div>
@@ -236,6 +268,18 @@
                                 <span class="pill-label">Grade</span>
                                 <span id="overall-letter" class="pill-val">-</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Target Gap Progress Bar -->
+                    <div class="progress-bar-container" style="margin-top: 1.25rem;">
+                        <div class="progress-bar-labels">
+                            <span>Grade Progress</span>
+                            <span id="target-marker-label">Target: 90%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div id="progress-fill" class="progress-fill" style="width: 0%;"></div>
+                            <div id="target-marker" class="target-marker" style="left: 90%;"></div>
                         </div>
                     </div>
                 </section>
@@ -261,7 +305,7 @@
                         </div>
                         <div class="form-group">
                             <label for="assign-possible">Points Possible</label>
-                            <input type="number" step="0.1" id="assign-possible" placeholder="50" required>
+                            <input type="number" step="0.1" id="assign-possible" value="100" placeholder="100" required>
                         </div>
                         <button type="submit" class="btn-primary">Add Assignment & Get Feedback</button>
                     </form>
@@ -269,7 +313,7 @@
 
                 <!-- REACTIVE STUDY BUDDY ADVISOR -->
                 <section class="card study-buddy-card">
-                    <h2>🤖 Study Buddy Advisor</h2>
+                    <h2>🤖 Study Buddy Advisor & Protection Cushion</h2>
                     <div id="study-buddy-container"></div>
                 </section>
 
@@ -351,8 +395,14 @@
 
                 <!-- COLLAPSIBLE SIMULATOR DRAWER -->
                 <details class="card collapsible-drawer simulator-drawer">
-                    <summary class="drawer-summary">🔮 What-If Grade Simulator (Click to Expand)</summary>
+                    <summary class="drawer-summary">🔮 What-If Simulator & Target Score Needed Calculator</summary>
                     <div class="drawer-content" style="margin-top: 1rem;">
+                        <h3>Target Score Needed Calculator</h3>
+                        <div id="target-needed-box" class="sim-result-box" style="margin-bottom: 1.5rem; background: #faf5f7;">
+                            Select category and enter remaining points below to see what score you need to hit your target grade!
+                        </div>
+
+                        <h3>What-If Single Grade Simulator</h3>
                         <p class="section-desc">Test a hypothetical score for an upcoming assignment (e.g., what if I get 95/100 on the final exam?).</p>
                         <div class="simulator-row">
                             <div class="form-group" style="flex: 2;">
@@ -367,7 +417,7 @@
                             </div>
                             <div class="form-group" style="flex: 1;">
                                 <label for="sim-possible">Hypothetical Possible</label>
-                                <input type="number" step="0.1" id="sim-possible" placeholder="e.g., 100">
+                                <input type="number" step="0.1" id="sim-possible" value="100" placeholder="e.g., 100">
                             </div>
                         </div>
                         <div class="sim-result-box" id="sim-result-text">
