@@ -1,5 +1,6 @@
 const defaultState = {
     userName: "",
+    hasSetGpaGoal: false,
     activeCourseId: null,
     targetGpa: 3.75,
     activeTab: 'courses',
@@ -18,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v9_data');
+    const raw = localStorage.getItem('courseclear_v10_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -41,8 +42,8 @@ const tourSteps = [
     },
     {
         badge: "Step 2 of 4",
-        title: "Quick Syllabus Importer ⚡",
-        text: "Expand the Course Setup drawer to paste syllabus grading text (e.g. 'Exams 40%, Homework 30%') and auto-fill category weights."
+        title: "Guided Syllabus Setup ⚡",
+        text: "When you join a course, a popup guides you to paste your syllabus breakdown or add weighted categories before logging grades."
     },
     {
         badge: "Step 3 of 4",
@@ -78,6 +79,7 @@ function showModalStep(stepId) {
 }
 
 function bindEvents() {
+    // Welcome Onboarding
     document.getElementById('setup-name-btn').onclick = () => {
         const name = document.getElementById('setup-name-input').value.trim();
         if (name) {
@@ -114,14 +116,95 @@ function bindEvents() {
         }
     };
 
+    // First-Time GPA Goal Setup
+    document.getElementById('save-first-time-gpa-btn').onclick = () => {
+        const val = parseFloat(document.getElementById('first-time-gpa-input').value);
+        if (!isNaN(val) && val >= 2.0 && val <= 4.0) {
+            appData.targetGpa = val;
+            appData.hasSetGpaGoal = true;
+            document.getElementById('gpa-setup-modal').classList.add('hidden');
+            saveAndRender();
+            confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+        } else {
+            alert("Please enter a valid GPA between 2.0 and 4.0");
+        }
+    };
+
+    // Syllabus Modal Setup Tabs
+    document.getElementById('setup-tab-parse-btn').onclick = () => {
+        document.getElementById('setup-tab-parse-btn').className = 'dash-tab active';
+        document.getElementById('setup-tab-manual-btn').className = 'dash-tab';
+        document.getElementById('setup-subview-parse').classList.remove('hidden');
+        document.getElementById('setup-subview-manual').classList.add('hidden');
+    };
+
+    document.getElementById('setup-tab-manual-btn').onclick = () => {
+        document.getElementById('setup-tab-parse-btn').className = 'dash-tab';
+        document.getElementById('setup-tab-manual-btn').className = 'dash-tab active';
+        document.getElementById('setup-subview-parse').classList.add('hidden');
+        document.getElementById('setup-subview-manual').classList.remove('hidden');
+    };
+
+    document.getElementById('modal-parse-btn').onclick = () => {
+        const text = document.getElementById('modal-syllabus-text').value.trim();
+        if (!text) return alert("Paste syllabus text first!");
+
+        const c = getCurrentCourse();
+        const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
+        let match, newCats = [];
+
+        while ((match = regex.exec(text)) !== null) {
+            let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
+            let catWeight = parseFloat(match[2]);
+            if (catName && !isNaN(catWeight)) {
+                newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
+            }
+        }
+
+        if (newCats.length > 0) {
+            c.categories = newCats;
+            document.getElementById('modal-syllabus-text').value = '';
+            renderSyllabusModalBadges(c);
+            saveAndRender();
+        } else {
+            alert("Could not detect categories. Include format like 'Exams 40%'.");
+        }
+    };
+
+    document.getElementById('modal-category-form').onsubmit = (e) => {
+        e.preventDefault();
+        const c = getCurrentCourse();
+        const name = document.getElementById('modal-cat-name').value.trim();
+        const weight = parseFloat(document.getElementById('modal-cat-weight').value);
+        if (name && !isNaN(weight)) {
+            c.categories.push({ id: 'cat_' + Date.now(), name, weight });
+            document.getElementById('modal-cat-name').value = '';
+            document.getElementById('modal-cat-weight').value = '';
+            renderSyllabusModalBadges(c);
+            saveAndRender();
+        }
+    };
+
+    document.getElementById('finish-syllabus-setup-btn').onclick = () => {
+        document.getElementById('syllabus-setup-modal').classList.add('hidden');
+    };
+
+    // Navigation
     document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
-    document.getElementById('tab-goals-btn').onclick = () => { appData.activeTab = 'goals'; saveAndRender(); };
+    document.getElementById('tab-goals-btn').onclick = () => { 
+        appData.activeTab = 'goals'; 
+        if (!appData.hasSetGpaGoal) {
+            document.getElementById('gpa-setup-modal').classList.remove('hidden');
+        } else {
+            saveAndRender(); 
+        }
+    };
     document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
     document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-pink'; saveAndRender(); };
     
     document.getElementById('add-course-main-btn').onclick = () => {
         const newId = 'course_' + Date.now();
-        appData.courses.push({
+        const newCourse = {
             id: newId,
             name: "Untitled Course " + (appData.courses.length + 1),
             credits: 3,
@@ -129,17 +212,18 @@ function bindEvents() {
             theme: availableThemes[appData.courses.length % availableThemes.length],
             categories: [],
             assignments: []
-        });
+        };
+        appData.courses.push(newCourse);
         appData.activeCourseId = newId;
         saveAndRender();
+        openSyllabusModal(newCourse);
     };
 
-    // Live inline update for course name
     document.getElementById('course-name-input').oninput = (e) => {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v9_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v10_data', JSON.stringify(appData));
         }
     };
 
@@ -286,6 +370,34 @@ function bindEvents() {
     };
 }
 
+function openSyllabusModal(course) {
+    document.getElementById('syllabus-modal-course-title').textContent = `Configure Syllabus: ${course.name}`;
+    renderSyllabusModalBadges(course);
+    document.getElementById('syllabus-setup-modal').classList.remove('hidden');
+}
+
+function renderSyllabusModalBadges(course) {
+    const container = document.getElementById('modal-category-badges');
+    container.innerHTML = '';
+    let totalWeight = 0;
+    course.categories.forEach(cat => {
+        totalWeight += cat.weight;
+        const badge = document.createElement('div');
+        badge.className = 'category-badge';
+        badge.innerHTML = `<span><strong>${escapeHtml(cat.name)}</strong>: ${cat.weight}%</span> <button onclick="deleteCategoryModal('${cat.id}')">&times;</button>`;
+        container.appendChild(badge);
+    });
+    document.getElementById('modal-weight-warning').textContent = totalWeight !== 100 ? `⚠️ Total weight is ${totalWeight}%. Must total 100%!` : '✅ Total weight is 100%! Ready to go.';
+}
+
+window.deleteCategoryModal = function(id) {
+    const c = getCurrentCourse();
+    c.categories = c.categories.filter(cat => cat.id !== id);
+    c.assignments = c.assignments.filter(a => a.categoryId !== id);
+    renderSyllabusModalBadges(c);
+    saveAndRender();
+};
+
 function renderTourStep() {
     const step = tourSteps[currentTourIndex];
     document.getElementById('tour-step-badge').textContent = step.badge;
@@ -299,7 +411,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v9_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v10_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -345,7 +457,13 @@ function renderHomeDashboard() {
         const tile = document.createElement('div');
         tile.className = `course-card-tile ${course.theme || 'theme-pink'}`;
         tile.style.setProperty('--card-accent', themeColors[course.theme] || '#d63384');
-        tile.onclick = () => { appData.activeCourseId = course.id; saveAndRender(); };
+        tile.onclick = () => { 
+            appData.activeCourseId = course.id; 
+            saveAndRender();
+            if (!course.categories || course.categories.length === 0) {
+                openSyllabusModal(course);
+            }
+        };
 
         tile.innerHTML = `
             <div>
@@ -411,7 +529,7 @@ function renderGoalsHub() {
             div.className = `insight-item ${isBehind ? 'warning' : 'success'}`;
             div.innerHTML = `
                 <div class="insight-title">${isBehind ? 'Catch-Up Opportunity' : 'Exceeding Target'}: ${escapeHtml(course.name)} (${stats.pct}% / Target: ${target}%)</div>
-                <div class="insight-desc">${isBehind ? `Currently sitting at <strong>${stats.pct}\% (${stats.letter})</strong>. Focus on high-weight deliverables in this class to bridge the gap to your target of ${target}%.` : `Awesome job! Your <strong>${stats.pct}\%</strong> exceeds your course target of${target}%.`}</div>
+                <div class="insight-desc">${isBehind ? `Currently sitting at <strong>${stats.pct}% (${stats.letter})</strong>. Focus on high-weight deliverables in this class to bridge the gap to your target of ${target}%.` : `Awesome job! Your <strong>${stats.pct}%</strong> exceeds your course target of ${target}%.`}</div>
             `;
             container.appendChild(div);
         }
@@ -527,12 +645,12 @@ function renderStudyBuddy(course) {
     let html = `
         <div class="study-buddy-box">
             <div class="buddy-status ${isMeetingTarget ? 'success' : 'warning'}">
-                ${isMeetingTarget ? `🟢 On Track! (+${(currentPct - target).toFixed(1)}% above target)` : `🟡 Behind Target (${diff}\% needed to reach${target}%)`}
+                ${isMeetingTarget ? `🟢 On Track! (+${(currentPct - target).toFixed(1)}% above target)` : `🟡 Behind Target (${diff}% needed to reach ${target}%)`}
             </div>
             <div class="buddy-advice">
                 ${isMeetingTarget 
-                    ? `Great job! Your current grade of <strong>${currentPct}\%</strong> is meeting your target of <strong>${target}%</strong>.` 
-                    : `Your current grade is <strong>${currentPct}%</strong>. To close the ${diff}\% gap to reach your <strong>${target}%</strong> goal, review your lowest-scoring work below.`}
+                    ? `Great job! Your current grade of <strong>${currentPct}%</strong> is meeting your target of <strong>${target}%</strong>.` 
+                    : `Your current grade is <strong>${currentPct}%</strong>. To close the ${diff}% gap to reach your <strong>${target}%</strong> goal, review your lowest-scoring work below.`}
             </div>
     `;
 
@@ -628,6 +746,6 @@ function getGpaPoints(letter) {
 }
 
 function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&casual;"', "'": '&#039;' };
     return text.replace(/[&<>"']/g, m => map[m]);
 }
