@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v11_data');
+    const raw = localStorage.getItem('courseclear_v13_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -36,24 +36,19 @@ const quotes = [
 
 const tourSteps = [
     {
-        badge: "Step 1 of 4",
+        badge: "Step 1 of 3",
         title: "Courses & Themes 🎨",
         text: "Add your classes, assign credit hours, set target percentage grades, and customize each course tile with aesthetic color themes."
     },
     {
-        badge: "Step 2 of 4",
-        title: "Guided Syllabus & One-Click Presets ⚡",
-        text: "When you join a course, a popup guides you to paste your syllabus or choose a one-click preset template before logging grades."
+        badge: "Step 2 of 3",
+        title: "Guided Rubric Setup ✍️",
+        text: "When you join a course, a clean popup guides you to manually add grading rubric categories and percentage weights before logging grades."
     },
     {
-        badge: "Step 3 of 4",
-        title: "Study Buddy & Target Needed Calculator 🤖",
-        text: "Your reactive Study Buddy analyzes your lowest scores and cushion space. Use the Target Needed calculator to see what score you need on remaining work to hit your target!"
-    },
-    {
-        badge: "Step 4 of 4",
-        title: "Printable Report Cards & GPA Goals 🎯",
-        text: "Track your semester GPA goal, generate a printable PDF academic report card, and export/import JSON backup files anytime."
+        badge: "Step 3 of 3",
+        title: "Study Buddy & Report Cards 🎯",
+        text: "Your Study Buddy analyzes low scores and safety cushions. Track your semester target GPA and print custom PDF academic report cards!"
     }
 ];
 
@@ -140,47 +135,6 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // Syllabus Modal Setup Tabs
-    document.getElementById('setup-tab-parse-btn').onclick = () => {
-        document.getElementById('setup-tab-parse-btn').className = 'dash-tab active';
-        document.getElementById('setup-tab-manual-btn').className = 'dash-tab';
-        document.getElementById('setup-subview-parse').classList.remove('hidden');
-        document.getElementById('setup-subview-manual').classList.add('hidden');
-    };
-
-    document.getElementById('setup-tab-manual-btn').onclick = () => {
-        document.getElementById('setup-tab-parse-btn').className = 'dash-tab';
-        document.getElementById('setup-tab-manual-btn').className = 'dash-tab active';
-        document.getElementById('setup-subview-parse').classList.add('hidden');
-        document.getElementById('setup-subview-manual').classList.remove('hidden');
-    };
-
-    document.getElementById('modal-parse-btn').onclick = () => {
-        const text = document.getElementById('modal-syllabus-text').value.trim();
-        if (!text) return alert("Paste syllabus text first!");
-
-        const c = getCurrentCourse();
-        const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
-        let match, newCats = [];
-
-        while ((match = regex.exec(text)) !== null) {
-            let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
-            let catWeight = parseFloat(match[2]);
-            if (catName && !isNaN(catWeight)) {
-                newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
-            }
-        }
-
-        if (newCats.length > 0) {
-            c.categories = newCats;
-            document.getElementById('modal-syllabus-text').value = '';
-            renderSyllabusModalBadges(c);
-            saveAndRender();
-        } else {
-            alert("Could not detect categories. Include format like 'Exams 40%'.");
-        }
-    };
-
     document.getElementById('modal-category-form').onsubmit = (e) => {
         e.preventDefault();
         const c = getCurrentCourse();
@@ -233,7 +187,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v11_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v13_data', JSON.stringify(appData));
         }
     };
 
@@ -271,37 +225,6 @@ function bindEvents() {
             saveAndRender();
             alert("Target GPA saved!");
         }
-    };
-
-    document.getElementById('export-json-btn').onclick = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", "courseclear_backup.json");
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-    };
-
-    document.getElementById('import-json-file').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            try {
-                const parsed = JSON.parse(evt.target.result);
-                if (parsed.courses && Array.isArray(parsed.courses)) {
-                    appData = parsed;
-                    saveAndRender();
-                    alert("Backup restored successfully!");
-                } else {
-                    alert("Invalid backup file format.");
-                }
-            } catch (err) {
-                alert("Error reading JSON file.");
-            }
-        };
-        reader.readAsText(file);
     };
 
     document.getElementById('category-form').onsubmit = (e) => {
@@ -345,32 +268,6 @@ function bindEvents() {
         el.oninput = updateSimulator;
     });
 
-    document.getElementById('parse-syllabus-btn').onclick = () => {
-        const text = document.getElementById('syllabus-text-input').value.trim();
-        if (!text) return alert("Paste syllabus text first!");
-
-        const c = getCurrentCourse();
-        const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
-        let match, newCats = [];
-
-        while ((match = regex.exec(text)) !== null) {
-            let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
-            let catWeight = parseFloat(match[2]);
-            if (catName && !isNaN(catWeight)) {
-                newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
-            }
-        }
-
-        if (newCats.length > 0) {
-            c.categories = newCats;
-            document.getElementById('syllabus-text-input').value = '';
-            saveAndRender();
-            alert("Parsed syllabus categories successfully!");
-        } else {
-            alert("Could not detect categories. Include format like 'Exams 40%'.");
-        }
-    };
-
     document.getElementById('clear-data-btn').onclick = () => {
         const c = getCurrentCourse();
         if (confirm("Reset categories and assignments for this course?")) {
@@ -380,34 +277,6 @@ function bindEvents() {
         }
     };
 }
-
-window.applyTemplate = function(type) {
-    const c = getCurrentCourse();
-    if (!c) return;
-
-    if (type === 'standard') {
-        c.categories = [
-            { id: 'cat_1', name: 'Exams', weight: 40 },
-            { id: 'cat_2', name: 'Homework', weight: 30 },
-            { id: 'cat_3', name: 'Projects', weight: 20 },
-            { id: 'cat_4', name: 'Participation', weight: 10 }
-        ];
-    } else if (type === 'examHeavy') {
-        c.categories = [
-            { id: 'cat_1', name: 'Exams & Quizzes', weight: 50 },
-            { id: 'cat_2', name: 'Homework', weight: 30 },
-            { id: 'cat_3', name: 'Final Project', weight: 20 }
-        ];
-    } else if (type === 'project') {
-        c.categories = [
-            { id: 'cat_1', name: 'Group Project', weight: 40 },
-            { id: 'cat_2', name: 'Milestone Papers', weight: 40 },
-            { id: 'cat_3', name: 'Class Presentation', weight: 20 }
-        ];
-    }
-    renderSyllabusModalBadges(c);
-    saveAndRender();
-};
 
 function generateReportCard() {
     const container = document.getElementById('report-card-content');
@@ -458,7 +327,7 @@ function generateReportCard() {
 }
 
 function openSyllabusModal(course) {
-    document.getElementById('syllabus-modal-course-title').textContent = `Configure Syllabus: ${course.name}`;
+    document.getElementById('syllabus-modal-course-title').textContent = `Configure Grading Rubric: ${course.name}`;
     renderSyllabusModalBadges(course);
     document.getElementById('syllabus-setup-modal').classList.remove('hidden');
 }
@@ -498,7 +367,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v11_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v13_data', JSON.stringify(appData));
     renderApp();
 }
 
