@@ -10,7 +10,7 @@ const defaultState = {
             name: "Untitled Course",
             credits: 3,
             targetGrade: 90,
-            theme: "theme-navy", // Updated to clean neutral navy default
+            theme: "theme-pink",
             categories: [],
             assignments: []
         }
@@ -19,15 +19,14 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v27_data');
+    const raw = localStorage.getItem('courseclear_v26_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
     appData = JSON.parse(JSON.stringify(defaultState));
 }
 
-// Updated gender-neutral, RIT-inspired, and professional neutral themes
-const availableThemes = ["theme-navy", "theme-rit", "theme-slate", "theme-teal", "theme-indigo"];
+const availableThemes = ["theme-pink", "theme-purple", "theme-teal", "theme-yellow", "theme-indigo"];
 const quotes = [
     "✨ 'Consistency is the DNA of academic success.'",
     "🚀 'Small daily improvements lead to stunning results.'",
@@ -39,7 +38,7 @@ const tourSteps = [
     {
         badge: "Step 1 of 3",
         title: "Courses & Themes 🎨",
-        text: "Add your classes, assign credit hours, set target percentage grades, and personalize each course tile with clean professional color themes."
+        text: "Add your classes, assign credit hours, set target percentage grades, and personalize each course tile with aesthetic color themes."
     },
     {
         badge: "Step 2 of 3",
@@ -136,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // EXACT WORKING SYLLABUS PARSER (PRESERVED)
+    // STRICT WHITELIST SYLLABUS PARSER
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -159,6 +158,7 @@ function bindEvents() {
             const c = getCurrentCourse();
             let finalCategories = [];
 
+            // Check if this is the MGIS 130 percentage-based syllabus or similar RIT course
             if (fullDocText.includes('systems thinking') || fullDocText.includes('mgis-130') || (fullDocText.includes('d1') && fullDocText.includes('d2'))) {
                 finalCategories = [
                     { id: 'cat_' + Date.now() + '1', name: 'D1 — Systems Thinking', weight: 15 },
@@ -169,6 +169,7 @@ function bindEvents() {
                     { id: 'cat_' + Date.now() + '6', name: 'Participation & Engagement', weight: 10 }
                 ];
             } else if (fullDocText.includes('professional selling') || fullDocText.includes('stukent')) {
+                // Point-based syllabus (Professional Selling)
                 const pointCategories = [
                     { name: 'Team Project', points: 150 },
                     { name: 'Textbook Quizzes', points: 195 },
@@ -184,6 +185,7 @@ function bindEvents() {
                     weight: parseFloat(((cat.points / totalPoints) * 100).toFixed(1))
                 }));
             } else {
+                // Generic fallback scanner for other syllabi
                 let detected = [];
                 const lines = fullDocText.split('\n');
                 lines.forEach(line => {
@@ -233,7 +235,7 @@ function bindEvents() {
         }
     };
     document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
-    document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-navy'; saveAndRender(); };
+    document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-pink'; saveAndRender(); };
     
     document.getElementById('add-course-main-btn').onclick = () => {
         const newId = 'course_' + Date.now();
@@ -256,7 +258,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v27_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v26_data', JSON.stringify(appData));
         }
     };
 
@@ -273,7 +275,7 @@ function bindEvents() {
         if (confirm("Delete this course?")) {
             appData.courses = appData.courses.filter(c => c.id !== appData.activeCourseId);
             appData.activeCourseId = null;
-            document.body.className = "theme-navy";
+            document.body.className = "theme-pink";
             saveAndRender();
         }
     };
@@ -438,7 +440,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v27_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v26_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -476,14 +478,14 @@ function renderHomeDashboard() {
     const grid = document.getElementById('courses-grid');
     grid.innerHTML = '';
 
-    const themeColors = { 'theme-navy': '#1e3a8a', 'theme-rit': '#f76900', 'theme-slate': '#475569', 'theme-teal': '#0d9488', 'theme-indigo': '#4f46e5' };
+    const themeColors = { 'theme-pink': '#d63384', 'theme-purple': '#8a2be2', 'theme-teal': '#0d9488', 'theme-yellow': '#d97706', 'theme-indigo': '#4f46e5' };
 
     appData.courses.forEach(course => {
         const stats = calculateCourseGrade(course);
         const target = course.targetGrade || 90;
         const tile = document.createElement('div');
-        tile.className = `course-card-tile ${course.theme || 'theme-navy'}`;
-        tile.style.setProperty('--card-accent', themeColors[course.theme] || '#1e3a8a');
+        tile.className = `course-card-tile ${course.theme || 'theme-pink'}`;
+        tile.style.setProperty('--card-accent', themeColors[course.theme] || '#d63384');
         tile.onclick = () => { 
             appData.activeCourseId = course.id; 
             saveAndRender();
@@ -567,8 +569,8 @@ function renderCourseDetail() {
     const c = getCurrentCourse();
     if (!c) return;
 
-    document.body.className = c.theme || 'theme-navy';
-    document.getElementById('theme-selector').value = c.theme || 'theme-navy';
+    document.body.className = c.theme || 'theme-pink';
+    document.getElementById('theme-selector').value = c.theme || 'theme-pink';
     document.getElementById('course-name-input').value = c.name === "Untitled Course" ? "" : c.name;
     document.getElementById('course-credits-input').value = c.credits || 3;
     document.getElementById('course-target-input').value = c.targetGrade || 90;
