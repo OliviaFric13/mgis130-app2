@@ -1,8 +1,8 @@
 # CourseClear — Course Grade & Goal Tracker
 
-**Tagline:** Manage multiple courses, import syllabus weights instantly, and track your live percentage & letter grade.
+**Tagline:** Upload your syllabus PDF, manage multiple courses, and track your live percentage & letter grade in real-time.
 
-CourseClear is a custom single-page web application built to solve the MyCourses grade-visibility gap at RIT. Designed with a **guided onboarding flow**, **one-click preset templates**, and **progressive disclosure architecture**, the app leads users through setting up course syllabus structures first, configuring semester GPA goals, and logging assignments—all while providing instant, reactive feedback through an AI **Study Buddy Feedback Coach** and a **Target Score Needed Calculator**.
+CourseClear is a custom single-page web application designed to solve the grade-visibility gap for university coursework. Built with a **guided onboarding flow**, **client-side PDF syllabus parsing**, and a **progressive disclosure architecture**, the app guides students through setting up course syllabus structures, configuring semester GPA goals, and logging assignments—all while offering instant feedback through an AI **Study Buddy Advisor** and a **Target Score Needed Calculator**.
 
 This project demonstrates the **Three-Layer Architecture** of information systems.
 
@@ -11,49 +11,45 @@ This project demonstrates the **Three-Layer Architecture** of information system
 ## 🏗️ Three-Layer Architecture Breakdown
 
 ### 1. Data Layer (Information Storage)
-* **Comprehensive State Model:** Stores an overarching application object (`courseclear_v11_data`) holding user profile info, target semester GPA goals, active view tabs, and a collection of course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
-* **Persistence Layer:** Utilizes browser `localStorage` to securely save and load all user records, individual course target percentages, custom themes, and goal settings in JSON format.
-* **Backup & Restore System:** Supports complete JSON file export and import, allowing users to download local backups of their semester data or restore previous records seamlessly.
+* **Comprehensive State Model:** Maintains a unified application state object holding user profile info, target semester GPA goals, active view tabs, and detailed course objects (`id`, `name`, `credits`, `targetGrade`, `theme`, `categories`, `assignments`).
+* **Persistence Layer:** Uses browser `localStorage` to save and restore all user records, course target percentages, custom color themes, and goal settings automatically without requiring a backend database.
 
 ### 2. Processing Layer (Business Logic)
-* **Regex Syllabus Importer & Preset Templates:** Automatically scans pasted syllabus text for grading breakdown percentages or applies one-click preset templates (Standard, Exam Heavy, Project Based) instantly.
-* **Weighted Grade Formula:** Calculates live cumulative percentages by grouping assignments by category, summing points earned vs. possible, and weighting them against syllabus requirements:
+* **PDF.js Syllabus Extractor:** Leverages Mozilla's `PDF.js` library directly in the browser to extract raw text from uploaded MyCourses PDF syllabi and parse category names and percentage weights automatically using regular expressions.
+* **Weighted Grade Formula:** Calculates live cumulative percentage grades by grouping assignments by category, calculating points earned vs. possible, and weighting them against rubric requirements:
   $$\text{Overall Grade \%} = \frac{\sum (\text{Category \%} \times \text{Category Weight})}{\sum \text{Active Weights}}$$
-* **Reactive Study Buddy & Protection Cushion Engine:** Compares live course percentages against individual target grade goals immediately upon score entry, highlights lowest-scoring assignments, and evaluates safety cushion metrics.
-* **Target Score Needed Calculator:** Dynamically calculates the exact score needed on remaining deliverables to help students hit their target course grade.
-* **What-If Simulation Engine:** Dynamically calculates hypothetical future assignment scores on the fly to preview how they impact overall course percentages before official grades are posted.
-* **GPA & Goal Engine:** Computes current semester GPA using credit hour weights and contrasts it against target GPA goals to generate automated on-track status alerts and catch-up insights.
+* **Reactive Study Buddy Engine:** Compares live course percentages against target goals after every score entry, highlights lowest-scoring deliverables, and provides tailored academic study tips.
+* **Target Score Needed Calculator:** Calculates the exact average score required on remaining deliverables to help students reach their target course grade.
+* **What-If Simulation Engine:** Calculates hypothetical future assignment scores on the fly to preview their impact on overall course percentage before official grades are posted.
+* **GPA Goal Engine:** Computes estimated semester GPA using course credit weights and evaluates progress against target GPA goals.
 
 ### 3. User Interface Layer (Presentation)
-* **Guided Course & Syllabus Onboarding:** Automatically launches a dedicated setup modal whenever a user adds or opens a course without categories, featuring one-click preset buttons and syllabus auto-parsing before unlocking grade entry.
-* **Guided Step-by-Step GPA Goal Setup:** Prompts the user with an interactive screen upon opening the GPA & Goals tab for the first time to define their overall semester GPA target before revealing the full analytics hub.
-* **Visual Target Gap Progress Bar:** Displays live progress bars with embedded target markers so students can see their grade vs. goal at a glance.
-* **Printable / Shareable Semester Report Card:** Generates a clean, formatted academic summary view complete with browser print support to save as a PDF.
-* **Progressive Disclosure Architecture:** Streamlines the main course workspace by placing daily actions front and center while tucking secondary settings and simulators into clean collapsible drawers.
-* **Dynamic Theme Engine & Confetti:** Applies distinct color palettes (Pink, Purple, Teal, Yellow, Indigo) and celebratory confetti particle effects for top-tier scores.
+* **Guided PDF Onboarding Modal:** Automatically prompts users to upload their syllabus PDF upon creating or opening a new course to populate category weights before logging grades.
+* **Visual Target Gap Progress Bar:** Displays real-time progress bars with embedded target marker lines for at-a-glance grade tracking.
+* **Printable Academic Report Card:** Generates a formatted academic summary view with browser print/PDF export support.
+* **Progressive Disclosure Architecture:** Keeps daily actions front and center while tucking secondary course settings and simulators into clean collapsible drawers.
+* **Dynamic Theme Engine & Confetti:** Features customizable color palettes (Pink, Purple, Teal, Yellow, Indigo) and celebratory confetti particle animations.
 
 ---
 
 ## 🚀 Key Features
 
-* ⚡ **One-Click Syllabus Presets & Importer:** Quickly populate category weights using pre-built templates or paste syllabus text.
-* 📋 **Syllabus-First Guided Setup:** A step-by-step overlay opens when creating or joining a course so users set up their grading structure first before entering grades.
-* 🎯 **Interactive GPA Target Setup:** First-time setup screen in the GPA Hub that asks for your semester GPA goal before showing detailed progress insights.
-* 📊 **Visual Target Progress Bars:** Dual-color progress bars showing live percentage achievement against a target marker line.
-* 🤖 **Reactive Study Buddy & Safety Cushion:** Evaluates new score entries against your target grade, highlights focus areas, and displays your grade protection cushion.
-* 🔮 **Target Score Needed Calculator & What-If Simulator:** Instantly calculate what score you need on remaining work to reach your target grade or test hypothetical future scores.
-* 📜 **Printable Academic Report Card:** Generate a clean semester report summary with a one-click print/PDF export option.
-* 📥 **JSON Data Backup & Export:** Download your semester data as a local backup file or restore from a past save anytime.
+* 📄 **Client-Side PDF Syllabus Uploader:** Drop or select a syllabus PDF downloaded directly from MyCourses to automatically parse grading categories and weights.
+* 🎯 **Interactive GPA Target Setup:** Define your overall semester GPA goal and track your estimated GPA in real time.
+* 📊 **Visual Target Progress Bars:** Dual-color progress bars showing live percentage achievement against a target goal marker.
+* 🤖 **Compact Study Buddy Advisor:** Evaluates new score entries against your target grade and highlights specific focus areas.
+* 🔮 **Target Score Needed Calculator & What-If Simulator:** Dynamically estimate required future scores or test hypothetical deliverable grades.
+* 📜 **Printable Academic Report Card:** View and print a clean semester summary or save it as a PDF report card.
 
 ---
 
 ## 🛠️ Built With
 
-* **HTML5** – Application Layout, Modals & Collapsible Drawers
-* **CSS3** – Custom Variables, Responsive Grids, Color Themes, and Print Stylesheets
-* **JavaScript (ES6+)** – DOM Manipulation, State Management, Regex Parsing & Calculations
-* **Canvas Confetti Library** – Celebration Animations
-* **Google Gemini AI** – Architecture Planning & Development Assistance
+* **HTML5** – Application Layout, Dropzones & Modals
+* **CSS3** – Custom Properties, Responsive Grids, and Color Themes
+* **JavaScript (ES6+)** – DOM Manipulation, State Management & Calculations
+* **PDF.js (Mozilla)** – Client-Side PDF Text Extraction
+* **Canvas Confetti Library** – Particle Animations
 * **GitHub Pages** – Web Hosting & Deployment
 
 ---
