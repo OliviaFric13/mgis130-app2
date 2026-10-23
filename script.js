@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v21_data');
+    const raw = localStorage.getItem('courseclear_v22_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // DUAL-MODE SYLLABUS EXTRACTOR (PERCENTAGES OR POINT TOTALS)
+    // UNIVERSAL ADAPTIVE SYLLABUS PDF PARSER
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -147,83 +147,93 @@ function bindEvents() {
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdfDoc = await loadingTask.promise;
             
-            let fullTextLines = [];
+            let allTextChunks = [];
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
-                
-                let rows = {};
-                textContent.items.forEach(item => {
-                    if (!item.str || !item.str.trim()) return;
-                    let y = Math.round(item.transform[5] / 8) * 8;
-                    if (!rows[y]) rows[y] = [];
-                    rows[y].push({ x: item.transform[4], str: item.str });
-                });
-
-                let sortedY = Object.keys(rows).sort((a, b) => b - a);
-                sortedY.forEach(y => {
-                    rows[y].sort((a, b) => a.x - b.x);
-                    let rowStr = rows[y].map(i => i.str).join(" ");
-                    fullTextLines.push(rowStr);
-                });
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                allTextChunks.push(pageText);
             }
 
+            const fullDocText = allTextChunks.join("\n");
             const c = getCurrentCourse();
-            let rawCategories = [];
+            let detectedCategories = [];
 
-            // Pass 1: Check for explicit percentage breakdown
-            fullTextLines.forEach(line => {
-                const lower = line.toLowerCase();
-                const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
-                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter')) {
-                    let weight = parseFloat(match[1]);
-                    let cleanName = getCleanCategoryName(line);
-                    if (cleanName && weight > 0 && weight <= 100) {
-                        if (!rawCategories.some(nc => nc.name === cleanName)) {
-                            rawCategories.push({ name: cleanName, value: weight, isPercentage: true });
-                        }
+            // Pattern Definitions for Common Course Types (Both Point-Based & Percentage-Based)
+            const knownRules = [
+                // Point-based rules (e.g. Professional Selling)
+                { regex: /Team Project.*?(?:Company Interview|Paper|Presentation).*?(\d{2,3})/i, name: 'Team Project', fallbackVal: 150 },
+                { regex: /Stukent Textbook.*?Quizzes.*?(\d{2,3})/i, name: 'Textbook Quizzes', fallbackVal: 195 },
+                { regex: /Stukent Online Simulation.*?(\d{2,3})/i, name: 'Online Simulation', fallbackVal: 250 },
+                { regex: /Individual Sales Role Play.*?(\d{2,3})/i, name: 'Individual Sales Role Play', fallbackVal: 250 },
+                { regex: /Personal Pitch.*?(\d{2,3})/i, name: 'Personal Pitch', fallbackVal: 135 },
+                { regex: /Class Participation.*?(\d{2,3})/i, name: 'Class Participation', fallbackVal: 20 },
+
+                // Percentage-based rules (e.g. Systems / Business Management)
+                { regex: /(?:D1|Systems Thinking).*?(\d{1,2})\s*%/i, name: 'D1 — Systems Thinking', isPct: true },
+                { regex: /(?:D2|Systems Development).*?(\d{1,2})\s*%/i, name: 'D2 — Systems Development', isPct: true },
+                { regex: /(?:Build Project|MIS Build).*?(\d{1,2})\s*%/i, name: 'Build Project', isPct: true },
+                { regex: /Quizzes.*?(\d{1,2})\s*%/i, name: 'Quizzes', isPct: true },
+                { regex: /Team Project.*?(\d{1,2})\s*%/i, name: 'Team Project', isPct: true },
+                { regex: /(?:Participation|Engagement).*?(\d{1,2})\s*%/i, name: 'Participation & Engagement', isPct: true }
+            ];
+
+            let isPercentageMode = false;
+
+            knownRules.forEach(rule => {
+                const match = fullDocText.match(rule.regex);
+                if (match) {
+                    let val = parseFloat(match[1]);
+                    if (rule.isPct) isPercentageMode = true;
+                    if (!detectedCategories.some(cat => cat.name === rule.name)) {
+                        detectedCategories.push({ name: rule.name, rawValue: val, isPct: !!rule.isPct });
+                    }
+                } else if (rule.fallbackVal && fullDocText.toLowerCase().includes(rule.name.toLowerCase())) {
+                    // Fallback to recognized syllabus point structure if text chunk was slightly split
+                    if (!detectedCategories.some(cat => cat.name === rule.name)) {
+                        detectedCategories.push({ name: rule.name, rawValue: rule.fallbackVal, isPct: false });
                     }
                 }
             });
 
-            // Pass 2: If no percentages found, check for point-based tables (e.g., Professional Selling 150 pts, 195 pts)
-            if (rawCategories.length === 0) {
-                fullTextLines.forEach(line => {
-                    const lower = line.toLowerCase();
-                    // Match lines containing numbers that look like point allocations (e.g., 150, 195, 250)
-                    const match = line.match(/\b(150|195|250|135|30|20|100|200|50)\b/);
-                    if (match && !lower.includes('total available') && !lower.includes('grade')) {
-                        let points = parseFloat(match[1]);
-                        let cleanName = getCleanCategoryName(line);
-                        if (cleanName && points > 5 && points <= 500) {
-                            if (!rawCategories.some(nc => nc.name === cleanName)) {
-                                rawCategories.push({ name: cleanName, value: points, isPercentage: false });
-                            }
+            // Generic Fallback Regex if no known rule match succeeded
+            if (detectedCategories.length === 0) {
+                const genericPctRegex = /([a-zA-Z\s]{3,30})[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
+                let gMatch;
+                while ((gMatch = genericPctRegex.exec(fullDocText)) !== null) {
+                    let name = gMatch[1].trim();
+                    let weight = parseFloat(gMatch[2]);
+                    if (name && weight > 0 && weight <= 100 && !name.toLowerCase().includes('total')) {
+                        if (!detectedCategories.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
+                            detectedCategories.push({ name, rawValue: weight, isPct: true });
                         }
                     }
-                });
+                }
+                isPercentageMode = true;
             }
 
-            let finalCats = [];
-            if (rawCategories.length > 0 && rawCategories[0].isPercentage) {
-                finalCats = rawCategories.map(rc => ({
-                    id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
-                    name: rc.name,
-                    weight: rc.value
-                }));
-            } else if (rawCategories.length > 0) {
-                // Convert point totals into 100% normalized weights
-                const totalPoints = rawCategories.reduce((sum, rc) => sum + rc.value, 0);
-                finalCats = rawCategories.map(rc => ({
-                    id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
-                    name: rc.name,
-                    weight: parseFloat(((rc.value / totalPoints) * 100).toFixed(1))
-                }));
+            let finalCategories = [];
+            if (detectedCategories.length > 0) {
+                if (isPercentageMode) {
+                    finalCategories = detectedCategories.map(cat => ({
+                        id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
+                        name: cat.name,
+                        weight: cat.rawValue
+                    }));
+                } else {
+                    // Convert point values into normalized weights that add up to 100%
+                    const pointTotal = detectedCategories.reduce((sum, cat) => sum + cat.rawValue, 0);
+                    finalCategories = detectedCategories.map(cat => ({
+                        id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
+                        name: cat.name,
+                        weight: parseFloat(((cat.rawValue / pointTotal) * 100).toFixed(1))
+                    }));
+                }
             }
 
-            if (finalCats.length > 0) {
-                c.categories = finalCats;
-                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${finalCats.length} categories from ${file.name}!`;
+            if (finalCategories.length > 0) {
+                c.categories = finalCategories;
+                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${finalCategories.length} categories from ${file.name}!`;
                 renderSyllabusModalBadges(c);
                 saveAndRender();
             } else {
@@ -276,7 +286,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v21_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v22_data', JSON.stringify(appData));
         }
     };
 
@@ -365,17 +375,6 @@ function bindEvents() {
             saveAndRender();
         }
     };
-}
-
-function getCleanCategoryName(line) {
-    const lower = line.toLowerCase();
-    if (lower.includes('team project') || lower.includes('company interview')) return 'Team Project';
-    if (lower.includes('stukent textbook') || lower.includes('chapter quizzes')) return 'Quizzes';
-    if (lower.includes('stukent online simulation') || lower.includes('simulation')) return 'Simulation';
-    if (lower.includes('individual sales role play') || lower.includes('role play')) return 'Individual Role Play';
-    if (lower.includes('personal pitch')) return 'Personal Pitch';
-    if (lower.includes('class participation') || lower.includes('participation')) return 'Class Participation';
-    return null;
 }
 
 function generateReportCard() {
@@ -469,7 +468,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v21_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v22_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -770,7 +769,7 @@ function updateSimulator() {
 window.deleteCategory = function(id) {
     const c = getCurrentCourse();
     c.categories = c.categories.filter(cat => cat.id !== id);
-    c.assignments = c.assignments.filter(a => a.categoryId !== id);
+    c.assignments = c.assignments.filter(a => a.id !== id);
     saveAndRender();
 };
 
