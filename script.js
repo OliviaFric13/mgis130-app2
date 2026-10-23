@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v20_data');
+    const raw = localStorage.getItem('courseclear_v21_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // STRICT SYLLABUS TABLE EXTRACTOR
+    // DUAL-MODE SYLLABUS EXTRACTOR (PERCENTAGES OR POINT TOTALS)
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -169,56 +169,66 @@ function bindEvents() {
             }
 
             const c = getCurrentCourse();
-            let newCats = [];
+            let rawCategories = [];
 
-            // Parse lines specifically looking for the exact 6 grade rubric components
+            // Pass 1: Check for explicit percentage breakdown
             fullTextLines.forEach(line => {
                 const lower = line.toLowerCase();
                 const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
-
-                // Ignore grading scale lines (like A >= 93%)
-                if (lower.includes('>=') || lower.includes('typical') || lower.includes('letter') || lower.includes('scale')) {
-                    return;
-                }
-
-                if (match) {
+                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter')) {
                     let weight = parseFloat(match[1]);
-                    let cleanName = "";
-
-                    if (lower.includes('d1') || lower.includes('systems thinking')) {
-                        cleanName = 'D1 — Systems Thinking';
-                    } else if (lower.includes('d2') || lower.includes('systems development')) {
-                        cleanName = 'D2 — Systems Development';
-                    } else if (lower.includes('build project') || lower.includes('mis build')) {
-                        cleanName = 'Build Project';
-                    } else if (lower.includes('quiz')) {
-                        cleanName = 'Quizzes';
-                    } else if (lower.includes('team project') || lower.includes('teach-a-skill')) {
-                        cleanName = 'Team Project';
-                    } else if (lower.includes('participation') || lower.includes('engagement')) {
-                        cleanName = 'Participation & Engagement';
-                    }
-
+                    let cleanName = getCleanCategoryName(line);
                     if (cleanName && weight > 0 && weight <= 100) {
-                        if (!newCats.some(nc => nc.name === cleanName)) {
-                            newCats.push({
-                                id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
-                                name: cleanName,
-                                weight: weight
-                            });
+                        if (!rawCategories.some(nc => nc.name === cleanName)) {
+                            rawCategories.push({ name: cleanName, value: weight, isPercentage: true });
                         }
                     }
                 }
             });
 
-            if (newCats.length > 0) {
-                c.categories = newCats;
-                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${newCats.length} core categories from ${file.name}!`;
+            // Pass 2: If no percentages found, check for point-based tables (e.g., Professional Selling 150 pts, 195 pts)
+            if (rawCategories.length === 0) {
+                fullTextLines.forEach(line => {
+                    const lower = line.toLowerCase();
+                    // Match lines containing numbers that look like point allocations (e.g., 150, 195, 250)
+                    const match = line.match(/\b(150|195|250|135|30|20|100|200|50)\b/);
+                    if (match && !lower.includes('total available') && !lower.includes('grade')) {
+                        let points = parseFloat(match[1]);
+                        let cleanName = getCleanCategoryName(line);
+                        if (cleanName && points > 5 && points <= 500) {
+                            if (!rawCategories.some(nc => nc.name === cleanName)) {
+                                rawCategories.push({ name: cleanName, value: points, isPercentage: false });
+                            }
+                        }
+                    }
+                });
+            }
+
+            let finalCats = [];
+            if (rawCategories.length > 0 && rawCategories[0].isPercentage) {
+                finalCats = rawCategories.map(rc => ({
+                    id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
+                    name: rc.name,
+                    weight: rc.value
+                }));
+            } else if (rawCategories.length > 0) {
+                // Convert point totals into 100% normalized weights
+                const totalPoints = rawCategories.reduce((sum, rc) => sum + rc.value, 0);
+                finalCats = rawCategories.map(rc => ({
+                    id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
+                    name: rc.name,
+                    weight: parseFloat(((rc.value / totalPoints) * 100).toFixed(1))
+                }));
+            }
+
+            if (finalCats.length > 0) {
+                c.categories = finalCats;
+                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${finalCats.length} categories from ${file.name}!`;
                 renderSyllabusModalBadges(c);
                 saveAndRender();
             } else {
                 document.getElementById('pdf-file-label').textContent = `⚠️ Could not auto-detect weights. Try another PDF or edit below.`;
-                alert("Could not automatically detect grading breakdown percentages. Make sure your syllabus lists percentages like 'Quizzes 15%' or 'Exams: 40%'.");
+                alert("Could not automatically detect grading breakdown. Make sure your syllabus lists percentages or point values.");
             }
 
         } catch (err) {
@@ -266,7 +276,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v20_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v21_data', JSON.stringify(appData));
         }
     };
 
@@ -355,6 +365,17 @@ function bindEvents() {
             saveAndRender();
         }
     };
+}
+
+function getCleanCategoryName(line) {
+    const lower = line.toLowerCase();
+    if (lower.includes('team project') || lower.includes('company interview')) return 'Team Project';
+    if (lower.includes('stukent textbook') || lower.includes('chapter quizzes')) return 'Quizzes';
+    if (lower.includes('stukent online simulation') || lower.includes('simulation')) return 'Simulation';
+    if (lower.includes('individual sales role play') || lower.includes('role play')) return 'Individual Role Play';
+    if (lower.includes('personal pitch')) return 'Personal Pitch';
+    if (lower.includes('class participation') || lower.includes('participation')) return 'Class Participation';
+    return null;
 }
 
 function generateReportCard() {
@@ -448,7 +469,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v20_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v21_data', JSON.stringify(appData));
     renderApp();
 }
 
