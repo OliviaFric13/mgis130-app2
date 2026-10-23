@@ -38,7 +38,7 @@ const tourSteps = [
     {
         badge: "Step 1 of 3",
         title: "Courses & Themes 🎨",
-        text: "Add your classes, assign credit hours, set target percentage grades, and customize each course tile with aesthetic color themes."
+        text: "Add your classes, assign credit hours, set target percentage grades, and personalize each course tile with aesthetic color themes."
     },
     {
         badge: "Step 2 of 3",
