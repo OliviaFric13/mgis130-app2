@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v16_data');
+    const raw = localStorage.getItem('courseclear_v17_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // ENHANCED PDF SYLLABUS UPLOADER LOGIC
+    // SMARTER PDF SYLLABUS UPLOADER LOGIC WITH DATE-STRIPPING
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -155,22 +155,29 @@ function bindEvents() {
                 fullText += pageText + "\n";
             }
 
-            // CLEANUP STEP: Remove parenthetical text like "(best 5 of 6)" before parsing
+            // CLEANUP STEP: Remove parenthetical text like "(best 5 of 6)"
             const cleanedText = fullText.replace(/\([^)]*\)/g, '');
 
             const c = getCurrentCourse();
-            // Regex handles category names with dashes, numbers, slashes, and spaces
             const regex = /([a-zA-Z0-9\s/—–-]+?)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
             let match, newCats = [];
 
             while ((match = regex.exec(cleanedText)) !== null) {
-                let catName = match[1].trim()
-                    .replace(/worth|weight|grade|category|total/gi, '')
+                let rawName = match[1].trim();
+                let catWeight = parseFloat(match[2]);
+
+                // SMART FILTER: Strip out calendar months, dates, days, and stray words mixed up by table columns
+                let catName = rawName
+                    .replace(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s*\d*/gi, '')
+                    .replace(/(mon|tue|wed|thu|fri|sat|sun)/gi, '')
+                    .replace(/worth|weight|grade|category|total|live|demo|days|artifact/gi, '')
                     .replace(/^[—–-]\s*/, '')
                     .trim();
-                
-                let catWeight = parseFloat(match[2]);
-                
+
+                // Clean up trailing dashes or extra spaces
+                catName = catName.replace(/[—–-]\s*$/, '').trim();
+                if (catName.toLowerCase() === 'improve') catName = 'Build Project';
+
                 if (catName && !isNaN(catWeight) && catName.length < 35 && catWeight > 0 && catWeight <= 100) {
                     if (!newCats.some(nc => nc.name.toLowerCase() === catName.toLowerCase())) {
                         newCats.push({ 
@@ -237,7 +244,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v16_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v17_data', JSON.stringify(appData));
         }
     };
 
@@ -419,7 +426,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v16_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v17_data', JSON.stringify(appData));
     renderApp();
 }
 
