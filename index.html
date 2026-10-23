@@ -35,7 +35,7 @@
 
             <!-- Interactive Tour Card -->
             <div id="modal-step-tour" class="modal-step hidden">
-                <div class="tour-badge" id="tour-step-badge">Step 1 of 4</div>
+                <div class="tour-badge" id="tour-step-badge">Step 1 of 3</div>
                 <h2 id="tour-step-title">Courses & Themes</h2>
                 <div id="tour-step-body" class="tour-body-text">
                     Add all your classes, assign credit hours, set target grades, and personalize each course with custom color themes (Pink, Purple, Teal, Yellow, Indigo)!
@@ -48,51 +48,27 @@
         </div>
     </div>
 
-    <!-- COURSE SYLLABUS FIRST SETUP MODAL -->
+    <!-- COURSE RUBRIC SETUP MODAL (CLEAN & SIMPLIFIED) -->
     <div id="syllabus-setup-modal" class="modal-overlay hidden">
         <div class="modal-card modal-large">
             <div class="modal-step">
                 <span class="tour-badge">Step 1: Course Setup</span>
-                <h2 id="syllabus-modal-course-title">Set Up Course Syllabus</h2>
-                <p class="section-desc">Before logging grades, let's configure your syllabus breakdown or category weights for this course.</p>
+                <h2 id="syllabus-modal-course-title">Configure Grading Rubric</h2>
+                <p class="helper-text" style="margin-top: 0.75rem;">
+                    Instead of inputting your syllabus, you can manually insert your grading rubric categories and percentage weights below.
+                </p>
 
-                <!-- One-Click Preset Templates -->
-                <div class="preset-template-box">
-                    <label>⚡ Quick Preset Templates:</label>
-                    <div class="preset-btn-row">
-                        <button type="button" class="btn-secondary" onclick="applyTemplate('standard')">Standard (40/30/20/10)</button>
-                        <button type="button" class="btn-secondary" onclick="applyTemplate('examHeavy')">Exam Heavy (50/30/20)</button>
-                        <button type="button" class="btn-secondary" onclick="applyTemplate('project')">Project Based (40/40/20)</button>
+                <form id="modal-category-form" class="category-form-grid" style="margin-top: 1.25rem;">
+                    <div class="form-group">
+                        <label for="modal-cat-name">Category Name</label>
+                        <input type="text" id="modal-cat-name" placeholder="e.g., Exams" required>
                     </div>
-                </div>
-
-                <div class="syllabus-setup-tabs" style="margin-top: 1rem;">
-                    <button id="setup-tab-parse-btn" class="dash-tab active">⚡ Paste Syllabus</button>
-                    <button id="setup-tab-manual-btn" class="dash-tab">✍️ Manual Categories</button>
-                </div>
-
-                <!-- Parse Option -->
-                <div id="setup-subview-parse" style="margin-top: 1rem;">
-                    <div class="importer-row">
-                        <textarea id="modal-syllabus-text" placeholder="Paste syllabus text here (e.g. Exams 40%, Homework 30%, Projects 30%)..."></textarea>
-                        <button id="modal-parse-btn" class="btn-secondary">Auto-Fill Categories</button>
+                    <div class="form-group">
+                        <label for="modal-cat-weight">Weight (%)</label>
+                        <input type="number" id="modal-cat-weight" min="1" max="100" placeholder="40" required>
                     </div>
-                </div>
-
-                <!-- Manual Option -->
-                <div id="setup-subview-manual" class="hidden" style="margin-top: 1rem;">
-                    <form id="modal-category-form" class="category-form-grid">
-                        <div class="form-group">
-                            <label for="modal-cat-name">Category Name</label>
-                            <input type="text" id="modal-cat-name" placeholder="e.g., Exams">
-                        </div>
-                        <div class="form-group">
-                            <label for="modal-cat-weight">Weight (%)</label>
-                            <input type="number" id="modal-cat-weight" min="1" max="100" placeholder="40">
-                        </div>
-                        <button type="submit" class="btn-primary">Add</button>
-                    </form>
-                </div>
+                    <button type="submit" class="btn-primary">Add Category</button>
+                </form>
 
                 <div id="modal-category-badges" class="badge-container" style="margin-top: 1rem;"></div>
                 <p id="modal-weight-warning" class="warning-text"></p>
@@ -163,7 +139,7 @@
                 <div id="courses-grid" class="courses-grid"></div>
             </div>
 
-            <!-- GPA Goals Tab -->
+            <!-- GPA Goals Tab (SIMPLIFIED & CLEAN) -->
             <div id="subview-goals" class="subview-content hidden">
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
@@ -190,18 +166,6 @@
                     </div>
                 </div>
 
-                <!-- Backup & Restore Data Card -->
-                <div class="card" style="margin-top: 1.5rem;">
-                    <h2>Data Backup & Restore</h2>
-                    <p class="section-desc">Download a backup JSON file of your semester data or restore from a previous backup file.</p>
-                    <div class="backup-row">
-                        <button id="export-json-btn" class="btn-secondary">📥 Export Backup (.json)</button>
-                        <label class="btn-secondary" style="cursor: pointer; display: inline-block; text-align: center;">
-                            📤 Import Backup <input type="file" id="import-json-file" accept=".json" style="display: none;">
-                        </label>
-                    </div>
-                </div>
-
                 <div class="card" style="margin-top: 1.5rem;">
                     <h2>Academic Insights & Action Plan</h2>
                     <div id="insights-container" class="insights-list"></div>
@@ -216,17 +180,14 @@
                         <h3>1. Managing Courses & Themes</h3>
                         <p>From the home dashboard, click <strong>+ Add New Course</strong> or select an existing course card. Inside each course, you can set your credit hours, set a target grade, and pick an aesthetic color theme (Pink, Purple, Teal, Yellow, or Indigo).</p>
                         
-                        <h3>2. Syllabus Importer & Weights</h3>
-                        <p>Instead of manually typing every category, paste your syllabus breakdown text into the Quick Syllabus Importer or select one-click preset templates!</p>
+                        <h3>2. Category Weights</h3>
+                        <p>In the setup step for each course, manually enter your grading rubric categories and weights (e.g., <em>Exams 40%, Homework 30%</em>). Make sure your weights total exactly 100%!</p>
 
                         <h3>3. Study Buddy Feedback Coach</h3>
                         <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips right after you log a score.</p>
 
                         <h3>4. What-If Grade Simulator & Target Needed Calculator</h3>
                         <p>Inside any course detail view, expand the simulator drawer to test hypothetical future scores AND calculate the exact score you need on remaining work to reach your target grade!</p>
-
-                        <h3>5. Backup & Restore</h3>
-                        <p>Go to the <strong>GPA & Goals Hub</strong> anytime to export your data as a JSON file or import a past backup so you never lose your progress.</p>
                     </div>
                 </div>
             </div>
@@ -345,7 +306,7 @@
 
                 <!-- COLLAPSIBLE SETUP DRAWER -->
                 <details class="card collapsible-drawer" id="course-setup-drawer">
-                    <summary class="drawer-summary">⚙️ Course Setup & Syllabus Weights (Click to Edit)</summary>
+                    <summary class="drawer-summary">⚙️ Course Setup & Category Weights (Click to Edit)</summary>
                     <div class="drawer-content">
                         <div class="course-setup-row" style="margin-top: 1rem;">
                             <div class="form-group" style="flex: 1;">
@@ -367,17 +328,8 @@
 
                         <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
 
-                        <h3>⚡ Quick Syllabus Importer</h3>
-                        <p class="section-desc">Paste your syllabus grading breakdown text below (e.g., "Exams 40%, Homework 30%") and click parse to set weights automatically.</p>
-                        <div class="importer-row">
-                            <textarea id="syllabus-text-input" placeholder="Paste grading breakdown text here..."></textarea>
-                            <button id="parse-syllabus-btn" class="btn-secondary">Auto-Fill Categories</button>
-                        </div>
-
-                        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border-color);">
-
-                        <h3>Syllabus Category Weights (Must total 100%)</h3>
-                        <form id="category-form" class="category-form-grid">
+                        <h3>Category Weights (Must total 100%)</h3>
+                        <form id="category-form" class="category-form-grid" style="margin-top: 0.5rem;">
                             <div class="form-group">
                                 <label for="cat-name">Category Name</label>
                                 <input type="text" id="cat-name" placeholder="e.g., Exams" required>
