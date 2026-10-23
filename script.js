@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v15_data');
+    const raw = localStorage.getItem('courseclear_v16_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // PDF Syllabus Uploader Logic using PDF.js
+    // ENHANCED PDF SYLLABUS UPLOADER LOGIC
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -155,30 +155,41 @@ function bindEvents() {
                 fullText += pageText + "\n";
             }
 
-            // Parse extracted text for grading rubric percentages
+            // CLEANUP STEP: Remove parenthetical text like "(best 5 of 6)" before parsing
+            const cleanedText = fullText.replace(/\([^)]*\)/g, '');
+
             const c = getCurrentCourse();
-            const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
+            // Regex handles category names with dashes, numbers, slashes, and spaces
+            const regex = /([a-zA-Z0-9\s/—–-]+?)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
             let match, newCats = [];
 
-            while ((match = regex.exec(fullText)) !== null) {
-                let catName = match[1].trim().replace(/worth|weight|grade|category/gi, '').trim();
+            while ((match = regex.exec(cleanedText)) !== null) {
+                let catName = match[1].trim()
+                    .replace(/worth|weight|grade|category|total/gi, '')
+                    .replace(/^[—–-]\s*/, '')
+                    .trim();
+                
                 let catWeight = parseFloat(match[2]);
-                if (catName && !isNaN(catWeight) && catName.length < 30) {
-                    // Prevent duplicate category additions
+                
+                if (catName && !isNaN(catWeight) && catName.length < 35 && catWeight > 0 && catWeight <= 100) {
                     if (!newCats.some(nc => nc.name.toLowerCase() === catName.toLowerCase())) {
-                        newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
+                        newCats.push({ 
+                            id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), 
+                            name: catName, 
+                            weight: catWeight 
+                        });
                     }
                 }
             }
 
             if (newCats.length > 0) {
                 c.categories = newCats;
-                document.getElementById('pdf-file-label').textContent = `✅ Successfully extracted categories from ${file.name}!`;
+                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${newCats.length} categories from ${file.name}!`;
                 renderSyllabusModalBadges(c);
                 saveAndRender();
             } else {
-                document.getElementById('pdf-file-label').textContent = `⚠️ Could not auto-detect weights. Try another PDF or use setup drawer.`;
-                alert("Could not automatically detect grading breakdown percentages from this PDF. Make sure your syllabus lists percentages like 'Exams 40%' or 'Homework: 30%'.");
+                document.getElementById('pdf-file-label').textContent = `⚠️ Could not auto-detect weights. Try another PDF or edit below.`;
+                alert("Could not automatically detect grading breakdown percentages. Make sure your syllabus lists percentages like 'Quizzes 15%' or 'Exams: 40%'.");
             }
 
         } catch (err) {
@@ -226,7 +237,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v15_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v16_data', JSON.stringify(appData));
         }
     };
 
@@ -408,7 +419,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v15_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v16_data', JSON.stringify(appData));
     renderApp();
 }
 
