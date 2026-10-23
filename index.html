@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="style.css">
     <!-- Confetti Library -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- PDF.js Library for Client-Side Syllabus Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker source
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
 </head>
 <body class="theme-pink">
 
@@ -48,19 +54,23 @@
         </div>
     </div>
 
-    <!-- COURSE SYLLABUS IMPORTER MODAL -->
+    <!-- COURSE SYLLABUS PDF UPLOADER MODAL -->
     <div id="syllabus-setup-modal" class="modal-overlay hidden">
         <div class="modal-card modal-large">
             <div class="modal-step">
                 <span class="tour-badge">Step 1: Course Setup</span>
-                <h2 id="syllabus-modal-course-title">Import Course Syllabus</h2>
+                <h2 id="syllabus-modal-course-title">Upload Syllabus PDF</h2>
                 <p class="helper-text" style="margin-top: 0.75rem;">
-                    Simply copy and paste your syllabus grading breakdown below (e.g., <em>Exams 40%, Homework 30%, Projects 30%</em>) and click parse to set up your categories instantly!
+                    Upload your downloaded MyCourses syllabus PDF below. CourseClear will automatically scan the file and extract your grading rubric categories!
                 </p>
 
                 <div class="importer-row" style="margin-top: 1rem;">
-                    <textarea id="modal-syllabus-text" placeholder="Paste syllabus grading breakdown here..." style="height: 110px;"></textarea>
-                    <button id="modal-parse-btn" class="btn-secondary">⚡ Parse Syllabus & Extract Categories</button>
+                    <label class="pdf-upload-dropzone" for="modal-pdf-file-input">
+                        <span style="font-size: 2rem;">📄</span>
+                        <span id="pdf-file-label" style="font-weight: 600; color: var(--primary);">Click to select or drop syllabus PDF here</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Supports standard MyCourses PDF downloads</span>
+                        <input type="file" id="modal-pdf-file-input" accept=".pdf" style="display: none;">
+                    </label>
                 </div>
 
                 <div id="modal-category-badges" class="badge-container" style="margin-top: 1rem;"></div>
@@ -173,8 +183,8 @@
                         <h3>1. Managing Courses & Themes</h3>
                         <p>From the home dashboard, click <strong>+ Add New Course</strong> or select an existing course card. Inside each course, you can set your credit hours, set a target grade, and pick an aesthetic color theme (Pink, Purple, Teal, Yellow, or Indigo).</p>
                         
-                        <h3>2. Syllabus Importer</h3>
-                        <p>When creating a course, simply copy and paste your syllabus grading breakdown text (e.g., <em>Exams 40%, Homework 30%</em>) to instantly populate your categories.</p>
+                        <h3>2. Syllabus PDF Uploader</h3>
+                        <p>When creating a course, simply upload your downloaded MyCourses syllabus PDF. CourseClear automatically scans the document and extracts your grading categories and weights!</p>
 
                         <h3>3. Study Buddy Feedback Coach</h3>
                         <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips right after you log a score.</p>
