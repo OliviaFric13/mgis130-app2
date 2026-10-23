@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v13_data');
+    const raw = localStorage.getItem('courseclear_v14_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -42,8 +42,8 @@ const tourSteps = [
     },
     {
         badge: "Step 2 of 3",
-        title: "Guided Rubric Setup ✍️",
-        text: "When you join a course, a clean popup guides you to manually add grading rubric categories and percentage weights before logging grades."
+        title: "Syllabus Importer ⚡",
+        text: "When you join a course, simply copy and paste your syllabus grading breakdown to automatically extract category weights."
     },
     {
         badge: "Step 3 of 3",
@@ -135,17 +135,30 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    document.getElementById('modal-category-form').onsubmit = (e) => {
-        e.preventDefault();
+    // Syllabus Importer Parsing logic on the modal
+    document.getElementById('modal-parse-btn').onclick = () => {
+        const text = document.getElementById('modal-syllabus-text').value.trim();
+        if (!text) return alert("Please paste your syllabus text first!");
+
         const c = getCurrentCourse();
-        const name = document.getElementById('modal-cat-name').value.trim();
-        const weight = parseFloat(document.getElementById('modal-cat-weight').value);
-        if (name && !isNaN(weight)) {
-            c.categories.push({ id: 'cat_' + Date.now(), name, weight });
-            document.getElementById('modal-cat-name').value = '';
-            document.getElementById('modal-cat-weight').value = '';
+        const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
+        let match, newCats = [];
+
+        while ((match = regex.exec(text)) !== null) {
+            let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
+            let catWeight = parseFloat(match[2]);
+            if (catName && !isNaN(catWeight)) {
+                newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
+            }
+        }
+
+        if (newCats.length > 0) {
+            c.categories = newCats;
+            document.getElementById('modal-syllabus-text').value = '';
             renderSyllabusModalBadges(c);
             saveAndRender();
+        } else {
+            alert("Could not automatically detect categories. Please ensure your text includes formats like 'Exams 40%' or 'Homework: 30%'.");
         }
     };
 
@@ -187,7 +200,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v13_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v14_data', JSON.stringify(appData));
         }
     };
 
@@ -327,7 +340,7 @@ function generateReportCard() {
 }
 
 function openSyllabusModal(course) {
-    document.getElementById('syllabus-modal-course-title').textContent = `Configure Grading Rubric: ${course.name}`;
+    document.getElementById('syllabus-modal-course-title').textContent = `Import Syllabus: ${course.name}`;
     renderSyllabusModalBadges(course);
     document.getElementById('syllabus-setup-modal').classList.remove('hidden');
 }
@@ -367,7 +380,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v13_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v14_data', JSON.stringify(appData));
     renderApp();
 }
 
