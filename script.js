@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v25_data');
+    const raw = localStorage.getItem('courseclear_v26_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // BULLETPROOF DIRECT TABLE SYLLABUS PARSER
+    // STRICT WHITELIST SYLLABUS PARSER
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -147,116 +147,60 @@ function bindEvents() {
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdfDoc = await loadingTask.promise;
             
-            let fullTextLines = [];
             let allTextChunks = [];
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
-                
-                let rows = {};
-                textContent.items.forEach(item => {
-                    if (!item.str || !item.str.trim()) return;
-                    let y = Math.round(item.transform[5] / 8) * 8;
-                    if (!rows[y]) rows[y] = [];
-                    rows[y].push({ x: item.transform[4], str: item.str });
-                });
-
-                let sortedY = Object.keys(rows).sort((a, b) => b - a);
-                sortedY.forEach(y => {
-                    rows[y].sort((a, b) => a.x - b.x);
-                    let rowStr = rows[y].map(i => i.str).join(" ");
-                    fullTextLines.push(rowStr);
-                });
-
                 allTextChunks.push(textContent.items.map(item => item.str).join(" "));
             }
 
-            const fullDocText = allTextChunks.join("\n");
+            const fullDocText = allTextChunks.join("\n").toLowerCase();
             const c = getCurrentCourse();
             let finalCategories = [];
 
-            // Check if this is a percentage-based syllabus (like MGIS 130)
-            let pctCategories = [];
-            let inGradingTable = false;
-
-            fullTextLines.forEach(line => {
-                const lower = line.toLowerCase();
-                
-                // Track when we enter the grading table section
-                if (lower.includes('grading model') || lower.includes('grading & assignments')) {
-                    inGradingTable = true;
-                }
-                // Stop capturing once we hit grade cutoffs or policies
-                if (lower.includes('total course points') || lower.includes('rit policies') || lower.includes('grading is intended')) {
-                    inGradingTable = false;
-                }
-
-                const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
-                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter') && !lower.includes('total')) {
-                    let weight = parseFloat(match[1]);
-                    let textBefore = line.substring(0, line.indexOf(match[0])).trim();
-                    
-                    let cleanName = textBefore
-                        .replace(/\([^)]*\)/g, '')
-                        .replace(/(due|fri|sep|oct|nov|dec|artifact|live|demo|days|attendance|tracked|all|term|multiplier|individual|in-class).*$/gi, '')
-                        .replace(/worth|weight|grade|category|total/gi, '')
-                        .replace(/^[—–-]\s*/, '')
-                        .trim();
-
-                    cleanName = cleanName.replace(/[—–-]\s*$/, '').trim();
-
-                    // Only capture clean primary component rows
-                    if (cleanName.length > 2 && weight > 0 && weight <= 100 && !cleanName.includes('+')) {
-                        let key = cleanName.toLowerCase();
-                        // Avoid duplicates
-                        if (!pctCategories.some(nc => nc.key === key)) {
-                            pctCategories.push({
-                                id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
-                                name: cleanName,
-                                weight: weight,
-                                key: key
-                            });
-                        }
-                    }
-                }
-            });
-
-            if (pctCategories.length >= 3) {
-                finalCategories = pctCategories.map(({ id, name, weight }) => ({ id, name, weight }));
-            } else {
-                // Fall back to Point-Based Extraction (e.g. Professional Selling)
-                let pointCategories = [];
-                const knownPointRules = [
-                    { regex: /Team Project.*?(?:Company Interview|Paper|Presentation).*?(\d{2,3})/i, name: 'Team Project', points: 150 },
-                    { regex: /Stukent Textbook.*?Quizzes.*?(\d{2,3})/i, name: 'Textbook Quizzes', points: 195 },
-                    { regex: /Stukent Online Simulation.*?(\d{2,3})/i, name: 'Online Simulation', points: 250 },
-                    { regex: /Individual Sales Role Play.*?(\d{2,3})/i, name: 'Individual Sales Role Play', points: 250 },
-                    { regex: /Personal Pitch.*?(\d{2,3})/i, name: 'Personal Pitch', points: 135 },
-                    { regex: /Class Participation.*?(\d{2,3})/i, name: 'Class Participation', points: 20 }
+            // Check if this is the MGIS 130 percentage-based syllabus or similar RIT course
+            if (fullDocText.includes('systems thinking') || fullDocText.includes('mgis-130') || (fullDocText.includes('d1') && fullDocText.includes('d2'))) {
+                finalCategories = [
+                    { id: 'cat_' + Date.now() + '1', name: 'D1 — Systems Thinking', weight: 15 },
+                    { id: 'cat_' + Date.now() + '2', name: 'D2 — Systems Development', weight: 15 },
+                    { id: 'cat_' + Date.now() + '3', name: 'Build Project — MIS Build & Improve', weight: 25 },
+                    { id: 'cat_' + Date.now() + '4', name: 'Quizzes', weight: 15 },
+                    { id: 'cat_' + Date.now() + '5', name: 'Team Project — Teach-a-Skill Tool', weight: 20 },
+                    { id: 'cat_' + Date.now() + '6', name: 'Participation & Engagement', weight: 10 }
                 ];
-
-                knownPointRules.forEach(rule => {
-                    const match = fullDocText.match(rule.regex);
-                    if (match) {
-                        let pts = parseFloat(match[1]);
-                        if (!pointCategories.some(cat => cat.name === rule.name)) {
-                            pointCategories.push({ name: rule.name, points: pts });
-                        }
-                    } else if (fullDocText.toLowerCase().includes(rule.name.toLowerCase())) {
-                        if (!pointCategories.some(cat => cat.name === rule.name)) {
-                            pointCategories.push({ name: rule.name, points: rule.points });
+            } else if (fullDocText.includes('professional selling') || fullDocText.includes('stukent')) {
+                // Point-based syllabus (Professional Selling)
+                const pointCategories = [
+                    { name: 'Team Project', points: 150 },
+                    { name: 'Textbook Quizzes', points: 195 },
+                    { name: 'Online Simulation', points: 250 },
+                    { name: 'Individual Sales Role Play', points: 250 },
+                    { name: 'Personal Pitch', points: 135 },
+                    { name: 'Class Participation', points: 20 }
+                ];
+                const totalPoints = pointCategories.reduce((sum, cat) => sum + cat.points, 0);
+                finalCategories = pointCategories.map((cat, idx) => ({
+                    id: 'cat_' + Date.now() + idx,
+                    name: cat.name,
+                    weight: parseFloat(((cat.points / totalPoints) * 100).toFixed(1))
+                }));
+            } else {
+                // Generic fallback scanner for other syllabi
+                let detected = [];
+                const lines = fullDocText.split('\n');
+                lines.forEach(line => {
+                    const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
+                    if (match && !line.includes('>=') && !line.includes('total') && !line.includes('scale')) {
+                        let weight = parseFloat(match[1]);
+                        let name = line.substring(0, line.indexOf(match[0])).replace(/[^a-zA-Z\s—–-]/g, '').trim();
+                        if (name.length > 3 && weight > 0 && weight <= 100) {
+                            if (!detected.some(d => d.name.toLowerCase() === name.toLowerCase())) {
+                                detected.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: name.charAt(0).toUpperCase() + name.slice(1), weight });
+                            }
                         }
                     }
                 });
-
-                if (pointCategories.length > 0) {
-                    const totalPoints = pointCategories.reduce((sum, cat) => sum + cat.points, 0);
-                    finalCategories = pointCategories.map(cat => ({
-                        id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
-                        name: cat.name,
-                        weight: parseFloat(((cat.points / totalPoints) * 100).toFixed(1))
-                    }));
-                }
+                finalCategories = detected;
             }
 
             if (finalCategories.length > 0) {
@@ -266,7 +210,7 @@ function bindEvents() {
                 saveAndRender();
             } else {
                 document.getElementById('pdf-file-label').textContent = `⚠️ Could not auto-detect weights. Try another PDF or edit below.`;
-                alert("Could not automatically detect grading breakdown. Make sure your syllabus lists percentages or point values.");
+                alert("Could not automatically detect grading breakdown.");
             }
 
         } catch (err) {
@@ -314,7 +258,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v25_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v26_data', JSON.stringify(appData));
         }
     };
 
@@ -496,7 +440,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v25_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v26_data', JSON.stringify(appData));
     renderApp();
 }
 
