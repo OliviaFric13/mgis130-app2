@@ -46,7 +46,7 @@ body {
     background: var(--card-bg); padding: 2rem; border-radius: var(--radius);
     width: 90%; max-width: 440px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); text-align: center; position: relative;
 }
-.modal-card.modal-large { max-width: 650px; text-align: left; }
+.modal-card.modal-large { max-width: 580px; text-align: left; }
 .modal-btn-row { display: flex; gap: 0.75rem; }
 .tour-badge {
     display: inline-block; background: var(--primary-light); color: var(--primary);
@@ -54,11 +54,7 @@ body {
 }
 .tour-body-text { font-size: 0.95rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.5; text-align: left; background: #faf5f7; padding: 1rem; border-radius: 8px; border-left: 3px solid var(--primary); }
 
-.preset-template-box { background: #faf5f7; border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 8px; margin-top: 0.75rem; }
-.preset-template-box label { font-size: 0.85rem; font-weight: 700; color: var(--primary); display: block; margin-bottom: 0.5rem; }
-.preset-btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-.syllabus-setup-tabs { display: flex; gap: 0.5rem; }
+.helper-text { font-size: 0.95rem; color: var(--text-main); background: #faf5f7; padding: 0.85rem; border-radius: 8px; border-left: 4px solid var(--primary); line-height: 1.5; }
 
 .dashboard-nav-tabs { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
 .dash-tab {
@@ -138,10 +134,6 @@ body {
 }
 
 .goal-config-grid { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
-.backup-row { display: flex; gap: 1rem; flex-wrap: wrap; }
-
-.importer-row { display: flex; flex-direction: column; gap: 0.75rem; }
-.importer-row textarea { width: 100%; height: 75px; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; }
 
 .form-group { display: flex; flex-direction: column; width: 100%; }
 .form-group label { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; }
