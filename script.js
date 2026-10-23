@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v18_data');
+    const raw = localStorage.getItem('courseclear_v19_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // COORDINATE-BASED PDF SYLLABUS UPLOADER LOGIC
+    // ROBUST LINE-BY-LINE PDF SYLLABUS UPLOADER LOGIC
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -152,57 +152,69 @@ function bindEvents() {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 
-                // Group text items by vertical position (y coordinate: transform[5]) into rows
+                // Group text items by vertical position (y coordinate) into discrete rows
                 let rows = {};
                 textContent.items.forEach(item => {
                     if (!item.str || !item.str.trim()) return;
-                    let y = Math.round(item.transform[5] / 6) * 6; // bin into row buckets
+                    let y = Math.round(item.transform[5] / 8) * 8; // row bucket
                     if (!rows[y]) rows[y] = [];
                     rows[y].push({ x: item.transform[4], str: item.str });
                 });
 
-                // Sort rows from top to bottom (descending y)
+                // Sort rows from top to bottom
                 let sortedY = Object.keys(rows).sort((a, b) => b - a);
                 sortedY.forEach(y => {
-                    // Sort items in the row from left to right by x coordinate
                     rows[y].sort((a, b) => a.x - b.x);
                     let rowStr = rows[y].map(i => i.str).join(" ");
                     fullTextLines.push(rowStr);
                 });
             }
 
-            let fullText = fullTextLines.join("\n");
-            // Remove parenthetical notes like "(best 5 of 6)"
-            const cleanedText = fullText.replace(/\([^)]*\)/g, '');
-
             const c = getCurrentCourse();
-            const regex = /([a-zA-Z0-9\s/—–-]+?)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
-            let match, newCats = [];
+            let newCats = [];
 
-            while ((match = regex.exec(cleanedText)) !== null) {
-                let rawName = match[1].trim();
-                let catWeight = parseFloat(match[2]);
+            // Scan each extracted row line for percentage weights
+            fullTextLines.forEach(line => {
+                const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
+                if (match) {
+                    let weight = parseFloat(match[1]);
+                    let textBefore = line.substring(0, line.indexOf(match[0])).trim();
 
-                // Filter out calendar dates, days, and stray words
-                let catName = rawName
-                    .replace(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s*\d*/gi, '')
-                    .replace(/(mon|tue|wed|thu|fri|sat|sun)/gi, '')
-                    .replace(/worth|weight|grade|category|total|live|demo|days|artifact|due/gi, '')
-                    .replace(/^[—–-]\s*/, '')
-                    .trim();
+                    // Clean up table artifacts, dates, and detail column text
+                    let cleanName = textBefore
+                        .replace(/\([^)]*\)/g, '') // remove parenthetical text like "(best 5 of 6)"
+                        .replace(/(due|fri|sep|oct|nov|dec|artifact|live|demo|days|attendance|tracked|all|term|multiplier|individual|in-class).*$/gi, '')
+                        .replace(/worth|weight|grade|category|total/gi, '')
+                        .trim();
 
-                catName = catName.replace(/[—–-]\s*$/, '').trim();
+                    // Map common shorthand names cleanly
+                    if (cleanName.includes('D1') || cleanName.toLowerCase().includes('systems thinking')) {
+                        cleanName = 'D1 — Systems Thinking';
+                    } else if (cleanName.includes('D2') || cleanName.toLowerCase().includes('systems development')) {
+                        cleanName = 'D2 — Systems Development';
+                    } else if (cleanName.toLowerCase().includes('build project') || cleanName.toLowerCase().includes('improve')) {
+                        cleanName = 'Build Project';
+                    } else if (cleanName.toLowerCase().includes('quiz')) {
+                        cleanName = 'Quizzes';
+                    } else if (cleanName.toLowerCase().includes('team project')) {
+                        cleanName = 'Team Project';
+                    } else if (cleanName.toLowerCase().includes('participation') || cleanName.toLowerCase().includes('engagement')) {
+                        cleanName = 'Participation & Engagement';
+                    }
 
-                if (catName && !isNaN(catWeight) && catName.length < 35 && catWeight > 0 && catWeight <= 100) {
-                    if (!newCats.some(nc => nc.name.toLowerCase() === catName.toLowerCase())) {
-                        newCats.push({ 
-                            id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), 
-                            name: catName, 
-                            weight: catWeight 
-                        });
+                    cleanName = cleanName.replace(/[—–-]\s*$/, '').trim();
+
+                    if (cleanName && weight > 0 && weight <= 100) {
+                        if (!newCats.some(nc => nc.weight === weight && nc.name.toLowerCase() === cleanName.toLowerCase())) {
+                            newCats.push({
+                                id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
+                                name: cleanName,
+                                weight: weight
+                            });
+                        }
                     }
                 }
-            }
+            });
 
             if (newCats.length > 0) {
                 c.categories = newCats;
@@ -259,7 +271,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v18_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v19_data', JSON.stringify(appData));
         }
     };
 
@@ -441,7 +453,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v18_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v19_data', JSON.stringify(appData));
     renderApp();
 }
 
