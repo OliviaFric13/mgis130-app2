@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v19_data');
+    const raw = localStorage.getItem('courseclear_v20_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // ROBUST LINE-BY-LINE PDF SYLLABUS UPLOADER LOGIC
+    // STRICT SYLLABUS TABLE EXTRACTOR
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -152,16 +152,14 @@ function bindEvents() {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 
-                // Group text items by vertical position (y coordinate) into discrete rows
                 let rows = {};
                 textContent.items.forEach(item => {
                     if (!item.str || !item.str.trim()) return;
-                    let y = Math.round(item.transform[5] / 8) * 8; // row bucket
+                    let y = Math.round(item.transform[5] / 8) * 8;
                     if (!rows[y]) rows[y] = [];
                     rows[y].push({ x: item.transform[4], str: item.str });
                 });
 
-                // Sort rows from top to bottom
                 let sortedY = Object.keys(rows).sort((a, b) => b - a);
                 sortedY.forEach(y => {
                     rows[y].sort((a, b) => a.x - b.x);
@@ -173,39 +171,36 @@ function bindEvents() {
             const c = getCurrentCourse();
             let newCats = [];
 
-            // Scan each extracted row line for percentage weights
+            // Parse lines specifically looking for the exact 6 grade rubric components
             fullTextLines.forEach(line => {
+                const lower = line.toLowerCase();
                 const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
+
+                // Ignore grading scale lines (like A >= 93%)
+                if (lower.includes('>=') || lower.includes('typical') || lower.includes('letter') || lower.includes('scale')) {
+                    return;
+                }
+
                 if (match) {
                     let weight = parseFloat(match[1]);
-                    let textBefore = line.substring(0, line.indexOf(match[0])).trim();
+                    let cleanName = "";
 
-                    // Clean up table artifacts, dates, and detail column text
-                    let cleanName = textBefore
-                        .replace(/\([^)]*\)/g, '') // remove parenthetical text like "(best 5 of 6)"
-                        .replace(/(due|fri|sep|oct|nov|dec|artifact|live|demo|days|attendance|tracked|all|term|multiplier|individual|in-class).*$/gi, '')
-                        .replace(/worth|weight|grade|category|total/gi, '')
-                        .trim();
-
-                    // Map common shorthand names cleanly
-                    if (cleanName.includes('D1') || cleanName.toLowerCase().includes('systems thinking')) {
+                    if (lower.includes('d1') || lower.includes('systems thinking')) {
                         cleanName = 'D1 — Systems Thinking';
-                    } else if (cleanName.includes('D2') || cleanName.toLowerCase().includes('systems development')) {
+                    } else if (lower.includes('d2') || lower.includes('systems development')) {
                         cleanName = 'D2 — Systems Development';
-                    } else if (cleanName.toLowerCase().includes('build project') || cleanName.toLowerCase().includes('improve')) {
+                    } else if (lower.includes('build project') || lower.includes('mis build')) {
                         cleanName = 'Build Project';
-                    } else if (cleanName.toLowerCase().includes('quiz')) {
+                    } else if (lower.includes('quiz')) {
                         cleanName = 'Quizzes';
-                    } else if (cleanName.toLowerCase().includes('team project')) {
+                    } else if (lower.includes('team project') || lower.includes('teach-a-skill')) {
                         cleanName = 'Team Project';
-                    } else if (cleanName.toLowerCase().includes('participation') || cleanName.toLowerCase().includes('engagement')) {
+                    } else if (lower.includes('participation') || lower.includes('engagement')) {
                         cleanName = 'Participation & Engagement';
                     }
 
-                    cleanName = cleanName.replace(/[—–-]\s*$/, '').trim();
-
                     if (cleanName && weight > 0 && weight <= 100) {
-                        if (!newCats.some(nc => nc.weight === weight && nc.name.toLowerCase() === cleanName.toLowerCase())) {
+                        if (!newCats.some(nc => nc.name === cleanName)) {
                             newCats.push({
                                 id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
                                 name: cleanName,
@@ -218,7 +213,7 @@ function bindEvents() {
 
             if (newCats.length > 0) {
                 c.categories = newCats;
-                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${newCats.length} categories from ${file.name}!`;
+                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${newCats.length} core categories from ${file.name}!`;
                 renderSyllabusModalBadges(c);
                 saveAndRender();
             } else {
@@ -271,7 +266,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v19_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v20_data', JSON.stringify(appData));
         }
     };
 
@@ -453,7 +448,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v19_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v20_data', JSON.stringify(appData));
     renderApp();
 }
 
