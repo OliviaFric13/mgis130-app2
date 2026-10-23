@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v23_data');
+    const raw = localStorage.getItem('courseclear_v24_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // SMART DUAL-PRIORITY SYLLABUS PARSER
+    // BULLETPROOF DUAL-MODE SYLLABUS PARSER WITH DEDUPLICATION
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -175,12 +175,14 @@ function bindEvents() {
             const c = getCurrentCourse();
             let finalCategories = [];
 
-            // PRIORITY 1: Check for explicit percentage breakdown
+            // PRIORITY 1: Check for explicit percentage breakdown (with strict filtering to avoid subheadings)
             let pctCategories = [];
             fullTextLines.forEach(line => {
                 const lower = line.toLowerCase();
                 const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
-                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter') && !lower.includes('total')) {
+                
+                // Skip grading scales, totals, and description paragraphs containing parentheses or formulas
+                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter') && !lower.includes('total') && !lower.includes('best') && !line.includes('+')) {
                     let weight = parseFloat(match[1]);
                     let textBefore = line.substring(0, line.indexOf(match[0])).trim();
                     
@@ -191,12 +193,17 @@ function bindEvents() {
                         .replace(/^[—–-]\s*/, '')
                         .trim();
 
+                    cleanName = cleanName.replace(/[—–-]\s*$/, '').trim();
+
                     if (cleanName.length > 2 && weight > 0 && weight <= 100) {
-                        if (!pctCategories.some(nc => nc.weight === weight && nc.name.toLowerCase() === cleanName.toLowerCase())) {
+                        // Normalize key for deduplication
+                        let key = cleanName.toLowerCase();
+                        if (!pctCategories.some(nc => nc.key === key)) {
                             pctCategories.push({
                                 id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
                                 name: cleanName,
-                                weight: weight
+                                weight: weight,
+                                key: key
                             });
                         }
                     }
@@ -204,8 +211,7 @@ function bindEvents() {
             });
 
             if (pctCategories.length >= 3) {
-                // Percentage syllabus successfully detected!
-                finalCategories = pctCategories;
+                finalCategories = pctCategories.map(({ id, name, weight }) => ({ id, name, weight }));
             } else {
                 // PRIORITY 2: Fall back to Point-Based Extraction (e.g. Professional Selling)
                 let pointCategories = [];
@@ -297,7 +303,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v23_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v24_data', JSON.stringify(appData));
         }
     };
 
@@ -479,7 +485,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v23_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v24_data', JSON.stringify(appData));
     renderApp();
 }
 
