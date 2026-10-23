@@ -48,27 +48,20 @@
         </div>
     </div>
 
-    <!-- COURSE RUBRIC SETUP MODAL (CLEAN & SIMPLIFIED) -->
+    <!-- COURSE SYLLABUS IMPORTER MODAL -->
     <div id="syllabus-setup-modal" class="modal-overlay hidden">
         <div class="modal-card modal-large">
             <div class="modal-step">
                 <span class="tour-badge">Step 1: Course Setup</span>
-                <h2 id="syllabus-modal-course-title">Configure Grading Rubric</h2>
+                <h2 id="syllabus-modal-course-title">Import Course Syllabus</h2>
                 <p class="helper-text" style="margin-top: 0.75rem;">
-                    Instead of inputting your syllabus, you can manually insert your grading rubric categories and percentage weights below.
+                    Simply copy and paste your syllabus grading breakdown below (e.g., <em>Exams 40%, Homework 30%, Projects 30%</em>) and click parse to set up your categories instantly!
                 </p>
 
-                <form id="modal-category-form" class="category-form-grid" style="margin-top: 1.25rem;">
-                    <div class="form-group">
-                        <label for="modal-cat-name">Category Name</label>
-                        <input type="text" id="modal-cat-name" placeholder="e.g., Exams" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="modal-cat-weight">Weight (%)</label>
-                        <input type="number" id="modal-cat-weight" min="1" max="100" placeholder="40" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Add Category</button>
-                </form>
+                <div class="importer-row" style="margin-top: 1rem;">
+                    <textarea id="modal-syllabus-text" placeholder="Paste syllabus grading breakdown here..." style="height: 110px;"></textarea>
+                    <button id="modal-parse-btn" class="btn-secondary">⚡ Parse Syllabus & Extract Categories</button>
+                </div>
 
                 <div id="modal-category-badges" class="badge-container" style="margin-top: 1rem;"></div>
                 <p id="modal-weight-warning" class="warning-text"></p>
@@ -180,8 +173,8 @@
                         <h3>1. Managing Courses & Themes</h3>
                         <p>From the home dashboard, click <strong>+ Add New Course</strong> or select an existing course card. Inside each course, you can set your credit hours, set a target grade, and pick an aesthetic color theme (Pink, Purple, Teal, Yellow, or Indigo).</p>
                         
-                        <h3>2. Category Weights</h3>
-                        <p>In the setup step for each course, manually enter your grading rubric categories and weights (e.g., <em>Exams 40%, Homework 30%</em>). Make sure your weights total exactly 100%!</p>
+                        <h3>2. Syllabus Importer</h3>
+                        <p>When creating a course, simply copy and paste your syllabus grading breakdown text (e.g., <em>Exams 40%, Homework 30%</em>) to instantly populate your categories.</p>
 
                         <h3>3. Study Buddy Feedback Coach</h3>
                         <p>In each course view, your AI Study Buddy compares your live percentage to your target grade, highlights your lowest scoring assignment, and recommends tailored study tips right after you log a score.</p>
