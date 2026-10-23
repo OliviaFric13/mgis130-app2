@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v17_data');
+    const raw = localStorage.getItem('courseclear_v18_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // SMARTER PDF SYLLABUS UPLOADER LOGIC WITH DATE-STRIPPING
+    // COORDINATE-BASED PDF SYLLABUS UPLOADER LOGIC
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -147,15 +147,32 @@ function bindEvents() {
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdfDoc = await loadingTask.promise;
             
-            let fullText = "";
+            let fullTextLines = [];
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(" ");
-                fullText += pageText + "\n";
+                
+                // Group text items by vertical position (y coordinate: transform[5]) into rows
+                let rows = {};
+                textContent.items.forEach(item => {
+                    if (!item.str || !item.str.trim()) return;
+                    let y = Math.round(item.transform[5] / 6) * 6; // bin into row buckets
+                    if (!rows[y]) rows[y] = [];
+                    rows[y].push({ x: item.transform[4], str: item.str });
+                });
+
+                // Sort rows from top to bottom (descending y)
+                let sortedY = Object.keys(rows).sort((a, b) => b - a);
+                sortedY.forEach(y => {
+                    // Sort items in the row from left to right by x coordinate
+                    rows[y].sort((a, b) => a.x - b.x);
+                    let rowStr = rows[y].map(i => i.str).join(" ");
+                    fullTextLines.push(rowStr);
+                });
             }
 
-            // CLEANUP STEP: Remove parenthetical text like "(best 5 of 6)"
+            let fullText = fullTextLines.join("\n");
+            // Remove parenthetical notes like "(best 5 of 6)"
             const cleanedText = fullText.replace(/\([^)]*\)/g, '');
 
             const c = getCurrentCourse();
@@ -166,17 +183,15 @@ function bindEvents() {
                 let rawName = match[1].trim();
                 let catWeight = parseFloat(match[2]);
 
-                // SMART FILTER: Strip out calendar months, dates, days, and stray words mixed up by table columns
+                // Filter out calendar dates, days, and stray words
                 let catName = rawName
                     .replace(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s*\d*/gi, '')
                     .replace(/(mon|tue|wed|thu|fri|sat|sun)/gi, '')
-                    .replace(/worth|weight|grade|category|total|live|demo|days|artifact/gi, '')
+                    .replace(/worth|weight|grade|category|total|live|demo|days|artifact|due/gi, '')
                     .replace(/^[—–-]\s*/, '')
                     .trim();
 
-                // Clean up trailing dashes or extra spaces
                 catName = catName.replace(/[—–-]\s*$/, '').trim();
-                if (catName.toLowerCase() === 'improve') catName = 'Build Project';
 
                 if (catName && !isNaN(catWeight) && catName.length < 35 && catWeight > 0 && catWeight <= 100) {
                     if (!newCats.some(nc => nc.name.toLowerCase() === catName.toLowerCase())) {
@@ -244,7 +259,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v17_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v18_data', JSON.stringify(appData));
         }
     };
 
@@ -426,7 +441,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v17_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v18_data', JSON.stringify(appData));
     renderApp();
 }
 
