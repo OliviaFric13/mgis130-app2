@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v22_data');
+    const raw = localStorage.getItem('courseclear_v23_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // UNIVERSAL ADAPTIVE SYLLABUS PDF PARSER
+    // SMART DUAL-PRIORITY SYLLABUS PARSER
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -147,86 +147,97 @@ function bindEvents() {
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdfDoc = await loadingTask.promise;
             
+            let fullTextLines = [];
             let allTextChunks = [];
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(" ");
-                allTextChunks.push(pageText);
+                
+                let rows = {};
+                textContent.items.forEach(item => {
+                    if (!item.str || !item.str.trim()) return;
+                    let y = Math.round(item.transform[5] / 8) * 8;
+                    if (!rows[y]) rows[y] = [];
+                    rows[y].push({ x: item.transform[4], str: item.str });
+                });
+
+                let sortedY = Object.keys(rows).sort((a, b) => b - a);
+                sortedY.forEach(y => {
+                    rows[y].sort((a, b) => a.x - b.x);
+                    let rowStr = rows[y].map(i => i.str).join(" ");
+                    fullTextLines.push(rowStr);
+                });
+
+                allTextChunks.push(textContent.items.map(item => item.str).join(" "));
             }
 
             const fullDocText = allTextChunks.join("\n");
             const c = getCurrentCourse();
-            let detectedCategories = [];
+            let finalCategories = [];
 
-            // Pattern Definitions for Common Course Types (Both Point-Based & Percentage-Based)
-            const knownRules = [
-                // Point-based rules (e.g. Professional Selling)
-                { regex: /Team Project.*?(?:Company Interview|Paper|Presentation).*?(\d{2,3})/i, name: 'Team Project', fallbackVal: 150 },
-                { regex: /Stukent Textbook.*?Quizzes.*?(\d{2,3})/i, name: 'Textbook Quizzes', fallbackVal: 195 },
-                { regex: /Stukent Online Simulation.*?(\d{2,3})/i, name: 'Online Simulation', fallbackVal: 250 },
-                { regex: /Individual Sales Role Play.*?(\d{2,3})/i, name: 'Individual Sales Role Play', fallbackVal: 250 },
-                { regex: /Personal Pitch.*?(\d{2,3})/i, name: 'Personal Pitch', fallbackVal: 135 },
-                { regex: /Class Participation.*?(\d{2,3})/i, name: 'Class Participation', fallbackVal: 20 },
+            // PRIORITY 1: Check for explicit percentage breakdown
+            let pctCategories = [];
+            fullTextLines.forEach(line => {
+                const lower = line.toLowerCase();
+                const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
+                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter') && !lower.includes('total')) {
+                    let weight = parseFloat(match[1]);
+                    let textBefore = line.substring(0, line.indexOf(match[0])).trim();
+                    
+                    let cleanName = textBefore
+                        .replace(/\([^)]*\)/g, '')
+                        .replace(/(due|fri|sep|oct|nov|dec|artifact|live|demo|days|attendance|tracked|all|term|multiplier|individual|in-class).*$/gi, '')
+                        .replace(/worth|weight|grade|category|total/gi, '')
+                        .replace(/^[—–-]\s*/, '')
+                        .trim();
 
-                // Percentage-based rules (e.g. Systems / Business Management)
-                { regex: /(?:D1|Systems Thinking).*?(\d{1,2})\s*%/i, name: 'D1 — Systems Thinking', isPct: true },
-                { regex: /(?:D2|Systems Development).*?(\d{1,2})\s*%/i, name: 'D2 — Systems Development', isPct: true },
-                { regex: /(?:Build Project|MIS Build).*?(\d{1,2})\s*%/i, name: 'Build Project', isPct: true },
-                { regex: /Quizzes.*?(\d{1,2})\s*%/i, name: 'Quizzes', isPct: true },
-                { regex: /Team Project.*?(\d{1,2})\s*%/i, name: 'Team Project', isPct: true },
-                { regex: /(?:Participation|Engagement).*?(\d{1,2})\s*%/i, name: 'Participation & Engagement', isPct: true }
-            ];
-
-            let isPercentageMode = false;
-
-            knownRules.forEach(rule => {
-                const match = fullDocText.match(rule.regex);
-                if (match) {
-                    let val = parseFloat(match[1]);
-                    if (rule.isPct) isPercentageMode = true;
-                    if (!detectedCategories.some(cat => cat.name === rule.name)) {
-                        detectedCategories.push({ name: rule.name, rawValue: val, isPct: !!rule.isPct });
-                    }
-                } else if (rule.fallbackVal && fullDocText.toLowerCase().includes(rule.name.toLowerCase())) {
-                    // Fallback to recognized syllabus point structure if text chunk was slightly split
-                    if (!detectedCategories.some(cat => cat.name === rule.name)) {
-                        detectedCategories.push({ name: rule.name, rawValue: rule.fallbackVal, isPct: false });
+                    if (cleanName.length > 2 && weight > 0 && weight <= 100) {
+                        if (!pctCategories.some(nc => nc.weight === weight && nc.name.toLowerCase() === cleanName.toLowerCase())) {
+                            pctCategories.push({
+                                id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
+                                name: cleanName,
+                                weight: weight
+                            });
+                        }
                     }
                 }
             });
 
-            // Generic Fallback Regex if no known rule match succeeded
-            if (detectedCategories.length === 0) {
-                const genericPctRegex = /([a-zA-Z\s]{3,30})[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
-                let gMatch;
-                while ((gMatch = genericPctRegex.exec(fullDocText)) !== null) {
-                    let name = gMatch[1].trim();
-                    let weight = parseFloat(gMatch[2]);
-                    if (name && weight > 0 && weight <= 100 && !name.toLowerCase().includes('total')) {
-                        if (!detectedCategories.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
-                            detectedCategories.push({ name, rawValue: weight, isPct: true });
+            if (pctCategories.length >= 3) {
+                // Percentage syllabus successfully detected!
+                finalCategories = pctCategories;
+            } else {
+                // PRIORITY 2: Fall back to Point-Based Extraction (e.g. Professional Selling)
+                let pointCategories = [];
+                const knownPointRules = [
+                    { regex: /Team Project.*?(?:Company Interview|Paper|Presentation).*?(\d{2,3})/i, name: 'Team Project', points: 150 },
+                    { regex: /Stukent Textbook.*?Quizzes.*?(\d{2,3})/i, name: 'Textbook Quizzes', points: 195 },
+                    { regex: /Stukent Online Simulation.*?(\d{2,3})/i, name: 'Online Simulation', points: 250 },
+                    { regex: /Individual Sales Role Play.*?(\d{2,3})/i, name: 'Individual Sales Role Play', points: 250 },
+                    { regex: /Personal Pitch.*?(\d{2,3})/i, name: 'Personal Pitch', points: 135 },
+                    { regex: /Class Participation.*?(\d{2,3})/i, name: 'Class Participation', points: 20 }
+                ];
+
+                knownPointRules.forEach(rule => {
+                    const match = fullDocText.match(rule.regex);
+                    if (match) {
+                        let pts = parseFloat(match[1]);
+                        if (!pointCategories.some(cat => cat.name === rule.name)) {
+                            pointCategories.push({ name: rule.name, points: pts });
+                        }
+                    } else if (fullDocText.toLowerCase().includes(rule.name.toLowerCase())) {
+                        if (!pointCategories.some(cat => cat.name === rule.name)) {
+                            pointCategories.push({ name: rule.name, points: rule.points });
                         }
                     }
-                }
-                isPercentageMode = true;
-            }
+                });
 
-            let finalCategories = [];
-            if (detectedCategories.length > 0) {
-                if (isPercentageMode) {
-                    finalCategories = detectedCategories.map(cat => ({
+                if (pointCategories.length > 0) {
+                    const totalPoints = pointCategories.reduce((sum, cat) => sum + cat.points, 0);
+                    finalCategories = pointCategories.map(cat => ({
                         id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
                         name: cat.name,
-                        weight: cat.rawValue
-                    }));
-                } else {
-                    // Convert point values into normalized weights that add up to 100%
-                    const pointTotal = detectedCategories.reduce((sum, cat) => sum + cat.rawValue, 0);
-                    finalCategories = detectedCategories.map(cat => ({
-                        id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
-                        name: cat.name,
-                        weight: parseFloat(((cat.rawValue / pointTotal) * 100).toFixed(1))
+                        weight: parseFloat(((cat.points / totalPoints) * 100).toFixed(1))
                     }));
                 }
             }
@@ -286,7 +297,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v22_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v23_data', JSON.stringify(appData));
         }
     };
 
@@ -468,7 +479,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v22_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v23_data', JSON.stringify(appData));
     renderApp();
 }
 
@@ -769,7 +780,7 @@ function updateSimulator() {
 window.deleteCategory = function(id) {
     const c = getCurrentCourse();
     c.categories = c.categories.filter(cat => cat.id !== id);
-    c.assignments = c.assignments.filter(a => a.id !== id);
+    c.assignments = c.assignments.filter(a => a.categoryId !== id);
     saveAndRender();
 };
 
