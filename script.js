@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v24_data');
+    const raw = localStorage.getItem('courseclear_v25_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -135,7 +135,7 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // BULLETPROOF DUAL-MODE SYLLABUS PARSER WITH DEDUPLICATION
+    // BULLETPROOF DIRECT TABLE SYLLABUS PARSER
     document.getElementById('modal-pdf-file-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -175,14 +175,24 @@ function bindEvents() {
             const c = getCurrentCourse();
             let finalCategories = [];
 
-            // PRIORITY 1: Check for explicit percentage breakdown (with strict filtering to avoid subheadings)
+            // Check if this is a percentage-based syllabus (like MGIS 130)
             let pctCategories = [];
+            let inGradingTable = false;
+
             fullTextLines.forEach(line => {
                 const lower = line.toLowerCase();
-                const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
                 
-                // Skip grading scales, totals, and description paragraphs containing parentheses or formulas
-                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter') && !lower.includes('total') && !lower.includes('best') && !line.includes('+')) {
+                // Track when we enter the grading table section
+                if (lower.includes('grading model') || lower.includes('grading & assignments')) {
+                    inGradingTable = true;
+                }
+                // Stop capturing once we hit grade cutoffs or policies
+                if (lower.includes('total course points') || lower.includes('rit policies') || lower.includes('grading is intended')) {
+                    inGradingTable = false;
+                }
+
+                const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
+                if (match && !lower.includes('>=') && !lower.includes('scale') && !lower.includes('letter') && !lower.includes('total')) {
                     let weight = parseFloat(match[1]);
                     let textBefore = line.substring(0, line.indexOf(match[0])).trim();
                     
@@ -195,9 +205,10 @@ function bindEvents() {
 
                     cleanName = cleanName.replace(/[—–-]\s*$/, '').trim();
 
-                    if (cleanName.length > 2 && weight > 0 && weight <= 100) {
-                        // Normalize key for deduplication
+                    // Only capture clean primary component rows
+                    if (cleanName.length > 2 && weight > 0 && weight <= 100 && !cleanName.includes('+')) {
                         let key = cleanName.toLowerCase();
+                        // Avoid duplicates
                         if (!pctCategories.some(nc => nc.key === key)) {
                             pctCategories.push({
                                 id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3),
@@ -213,7 +224,7 @@ function bindEvents() {
             if (pctCategories.length >= 3) {
                 finalCategories = pctCategories.map(({ id, name, weight }) => ({ id, name, weight }));
             } else {
-                // PRIORITY 2: Fall back to Point-Based Extraction (e.g. Professional Selling)
+                // Fall back to Point-Based Extraction (e.g. Professional Selling)
                 let pointCategories = [];
                 const knownPointRules = [
                     { regex: /Team Project.*?(?:Company Interview|Paper|Presentation).*?(\d{2,3})/i, name: 'Team Project', points: 150 },
@@ -303,7 +314,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v24_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v25_data', JSON.stringify(appData));
         }
     };
 
@@ -485,7 +496,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v24_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v25_data', JSON.stringify(appData));
     renderApp();
 }
 
