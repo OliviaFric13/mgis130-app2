@@ -19,7 +19,7 @@ const defaultState = {
 
 let appData;
 try {
-    const raw = localStorage.getItem('courseclear_v14_data');
+    const raw = localStorage.getItem('courseclear_v15_data');
     appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
     if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
 } catch (e) {
@@ -42,8 +42,8 @@ const tourSteps = [
     },
     {
         badge: "Step 2 of 3",
-        title: "Syllabus Importer ⚡",
-        text: "When you join a course, simply copy and paste your syllabus grading breakdown to automatically extract category weights."
+        title: "Syllabus PDF Uploader 📄",
+        text: "When you join a course, upload your MyCourses syllabus PDF to automatically extract your grading categories and weights."
     },
     {
         badge: "Step 3 of 3",
@@ -135,30 +135,56 @@ function bindEvents() {
         document.getElementById('report-card-modal').classList.add('hidden');
     };
 
-    // Syllabus Importer Parsing logic on the modal
-    document.getElementById('modal-parse-btn').onclick = () => {
-        const text = document.getElementById('modal-syllabus-text').value.trim();
-        if (!text) return alert("Please paste your syllabus text first!");
+    // PDF Syllabus Uploader Logic using PDF.js
+    document.getElementById('modal-pdf-file-input').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        const c = getCurrentCourse();
-        const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
-        let match, newCats = [];
+        document.getElementById('pdf-file-label').textContent = `📄 Scanning ${file.name}...`;
 
-        while ((match = regex.exec(text)) !== null) {
-            let catName = match[1].trim().replace(/worth|weight|grade/gi, '').trim();
-            let catWeight = parseFloat(match[2]);
-            if (catName && !isNaN(catWeight)) {
-                newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+            
+            let fullText = "";
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n";
             }
-        }
 
-        if (newCats.length > 0) {
-            c.categories = newCats;
-            document.getElementById('modal-syllabus-text').value = '';
-            renderSyllabusModalBadges(c);
-            saveAndRender();
-        } else {
-            alert("Could not automatically detect categories. Please ensure your text includes formats like 'Exams 40%' or 'Homework: 30%'.");
+            // Parse extracted text for grading rubric percentages
+            const c = getCurrentCourse();
+            const regex = /([a-zA-Z\s/]+)[:\s]+(\d{1,2}(?:\.\d+)?)\s*%/g;
+            let match, newCats = [];
+
+            while ((match = regex.exec(fullText)) !== null) {
+                let catName = match[1].trim().replace(/worth|weight|grade|category/gi, '').trim();
+                let catWeight = parseFloat(match[2]);
+                if (catName && !isNaN(catWeight) && catName.length < 30) {
+                    // Prevent duplicate category additions
+                    if (!newCats.some(nc => nc.name.toLowerCase() === catName.toLowerCase())) {
+                        newCats.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: catName, weight: catWeight });
+                    }
+                }
+            }
+
+            if (newCats.length > 0) {
+                c.categories = newCats;
+                document.getElementById('pdf-file-label').textContent = `✅ Successfully extracted categories from ${file.name}!`;
+                renderSyllabusModalBadges(c);
+                saveAndRender();
+            } else {
+                document.getElementById('pdf-file-label').textContent = `⚠️ Could not auto-detect weights. Try another PDF or use setup drawer.`;
+                alert("Could not automatically detect grading breakdown percentages from this PDF. Make sure your syllabus lists percentages like 'Exams 40%' or 'Homework: 30%'.");
+            }
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('pdf-file-label').textContent = `❌ Error reading PDF file.`;
+            alert("Error reading PDF file. Please try uploading again.");
         }
     };
 
@@ -200,7 +226,7 @@ function bindEvents() {
         const c = getCurrentCourse();
         if (c) {
             c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v14_data', JSON.stringify(appData));
+            localStorage.setItem('courseclear_v15_data', JSON.stringify(appData));
         }
     };
 
@@ -340,7 +366,9 @@ function generateReportCard() {
 }
 
 function openSyllabusModal(course) {
-    document.getElementById('syllabus-modal-course-title').textContent = `Import Syllabus: ${course.name}`;
+    document.getElementById('syllabus-modal-course-title').textContent = `Upload Syllabus: ${course.name}`;
+    document.getElementById('pdf-file-label').textContent = `Click to select or drop syllabus PDF here`;
+    document.getElementById('modal-pdf-file-input').value = '';
     renderSyllabusModalBadges(course);
     document.getElementById('syllabus-setup-modal').classList.remove('hidden');
 }
@@ -380,7 +408,7 @@ function getCurrentCourse() {
 }
 
 function saveAndRender() {
-    localStorage.setItem('courseclear_v14_data', JSON.stringify(appData));
+    localStorage.setItem('courseclear_v15_data', JSON.stringify(appData));
     renderApp();
 }
 
