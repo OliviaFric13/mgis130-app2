@@ -1,801 +1,880 @@
+/* =================================================================
+   COURSE CLEAR — MAIN APPLICATION SCRIPT (Fully Integrated)
+   ================================================================ */
+
+// DEMO / PROFESSOR RESET:
+// Clears saved state on fresh load so evaluators see the welcome onboarding modal.
+// (Comment out this line if you want your local data to persist permanently).
+localStorage.removeItem('courseclear_data');
+
+// Default App State
 const defaultState = {
-    userName: "",
-    hasSetGpaGoal: false,
-    activeCourseId: null,
-    targetGpa: 3.75,
-    activeTab: 'courses',
+    user: {
+        name: "",
+        targetGPA: 3.75
+    },
     courses: [
         {
-            id: "course_1",
-            name: "Untitled Course",
+            id: "course-sample-1",
+            name: "Consumer Behavior",
+            code: "MKTG-301",
             credits: 3,
+            color: "theme-pink",
             targetGrade: 90,
-            theme: "theme-pink",
-            categories: [],
-            assignments: []
+            categories: [
+                { id: "cat-1", name: "Exams", weight: 40, earned: 185, possible: 200 },
+                { id: "cat-2", name: "Projects", weight: 35, earned: 95, possible: 100 },
+                { id: "cat-3", name: "Quizzes", weight: 15, earned: 42, possible: 50 },
+                { id: "cat-4", name: "Participation", weight: 10, earned: 50, possible: 50 }
+            ],
+            assignments: [
+                { id: "a-1", name: "Midterm Exam", category: "Exams", earned: 85, possible: 100, percentage: 85 }
+            ]
         }
     ]
 };
 
-let appData;
-try {
-    const raw = localStorage.getItem('courseclear_v26_data');
-    appData = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(defaultState));
-    if (!appData.courses || !Array.isArray(appData.courses)) throw new Error("Invalid structure");
-} catch (e) {
-    appData = JSON.parse(JSON.stringify(defaultState));
+// Global App State
+let appData = loadAppData();
+let currentCourseId = null; // Track currently open course detail view
+let tourStep = 1;
+
+function loadAppData() {
+    try {
+        const saved = localStorage.getItem('courseclear_data');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error("Error loading local storage data:", e);
+    }
+    return JSON.parse(JSON.stringify(defaultState));
 }
 
-const availableThemes = ["theme-pink", "theme-purple", "theme-teal", "theme-yellow", "theme-indigo"];
-const quotes = [
-    "✨ 'Consistency is the DNA of academic success.'",
-    "🚀 'Small daily improvements lead to stunning results.'",
-    "💡 'Your future is created by what you do today, not tomorrow.'",
-    "🎯 'Focus on progress, not perfection.'"
-];
-
-const tourSteps = [
-    {
-        badge: "Step 1 of 3",
-        title: "Courses & Themes 🎨",
-        text: "Add your classes, assign credit hours, set target percentage grades, and personalize each course tile with aesthetic color themes."
-    },
-    {
-        badge: "Step 2 of 3",
-        title: "Syllabus PDF Uploader 📄",
-        text: "When you join a course, upload your MyCourses syllabus PDF to automatically extract your grading categories and weights."
-    },
-    {
-        badge: "Step 3 of 3",
-        title: "Study Buddy & Report Cards 🎯",
-        text: "Your Study Buddy analyzes low scores and safety cushions. Track your semester target GPA and print custom PDF academic report cards!"
+function saveAppData() {
+    try {
+        localStorage.setItem('courseclear_data', JSON.stringify(appData));
+    } catch (e) {
+        console.error("Error saving local storage data:", e);
     }
-];
+}
 
-let currentTourIndex = 0;
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('daily-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
-    
-    if (!appData.userName) {
-        document.getElementById('welcome-modal').classList.remove('hidden');
-        showModalStep('modal-step-name');
-    }
-
-    bindEvents();
-    renderApp();
+// Initialize Application on DOM Content Loaded
+document.addEventListener("DOMContentLoaded", () => {
+    checkOnboarding();
+    setupEventListeners();
+    renderDashboard();
+    updateGoalsView();
 });
 
-function showModalStep(stepId) {
-    document.getElementById('modal-step-name').classList.add('hidden');
-    document.getElementById('modal-step-intro').classList.add('hidden');
-    document.getElementById('modal-step-tour').classList.add('hidden');
-    document.getElementById(stepId).classList.remove('hidden');
+// ==========================================
+// 1. ONBOARDING & TOUR MODAL LOGIC
+// ==========================================
+function checkOnboarding() {
+    const modal = document.getElementById("welcome-modal");
+    if (!appData.user.name || appData.user.name.trim() === "") {
+        if (modal) modal.classList.remove("hidden");
+    } else {
+        if (modal) modal.classList.add("hidden");
+        updatePersonalizedGreeting();
+    }
 }
 
-function bindEvents() {
-    // Welcome Onboarding
-    document.getElementById('setup-name-btn').onclick = () => {
-        const name = document.getElementById('setup-name-input').value.trim();
-        if (name) {
-            appData.userName = name;
-            saveAndRender();
-            document.getElementById('tour-welcome-title').textContent = `Nice to meet you, ${name}! 👋`;
-            showModalStep('modal-step-intro');
+function updatePersonalizedGreeting() {
+    const greetingEl = document.getElementById("personalized-greeting");
+    if (greetingEl && appData.user.name) {
+        greetingEl.textContent = `Welcome back, ${appData.user.name}! Manage your courses, track your GPA goals, and stay on top of your semester.`;
+    }
+}
+
+// ==========================================
+// 2. EVENT LISTENERS SETUP
+// ==========================================
+function setupEventListeners() {
+    // Name Setup
+    const nameBtn = document.getElementById("setup-name-btn");
+    if (nameBtn) {
+        nameBtn.addEventListener("click", () => {
+            const nameInput = document.getElementById("setup-name-input").value.trim();
+            if (!nameInput) {
+                alert("Please enter your name to continue.");
+                return;
+            }
+            appData.user.name = nameInput;
+            saveAppData();
+            updatePersonalizedGreeting();
+
+            // Transition to Tour Intro Step
+            document.getElementById("modal-step-name").classList.add("hidden");
+            document.getElementById("modal-step-intro").classList.remove("hidden");
+            document.getElementById("tour-welcome-title").textContent = `Nice to meet you, ${nameInput}! 👋`;
+        });
+    }
+
+    // Tour Triggers
+    document.getElementById("start-tour-btn")?.addEventListener("click", () => {
+        document.getElementById("modal-step-intro").classList.add("hidden");
+        document.getElementById("modal-step-tour").classList.remove("hidden");
+    });
+
+    document.getElementById("skip-tour-btn")?.addEventListener("click", closeWelcomeModal);
+    document.getElementById("tour-skip-anytime-btn")?.addEventListener("click", closeWelcomeModal);
+    
+    document.getElementById("tour-next-btn")?.addEventListener("click", () => {
+        tourStep++;
+        if (tourStep === 2) {
+            document.getElementById("tour-step-badge").textContent = "Step 2 of 3";
+            document.getElementById("tour-step-title").textContent = "Syllabus PDF Scanner";
+            document.getElementById("tour-step-body").textContent = "Upload any course syllabus PDF. CourseClear automatically extracts your grading categories and percentage weights in seconds!";
+        } else if (tourStep === 3) {
+            document.getElementById("tour-step-badge").textContent = "Step 3 of 3";
+            document.getElementById("tour-step-title").textContent = "Study Buddy & GPA Goals";
+            document.getElementById("tour-step-body").textContent = "Log your assignment scores to receive real-time AI Study Buddy feedback, test hypothetical scores, and track your semester target!";
+            document.getElementById("tour-next-btn").textContent = "Get Started 🚀";
         } else {
-            alert("Please enter your name.");
+            closeWelcomeModal();
         }
-    };
+    });
 
-    document.getElementById('start-tour-btn').onclick = () => {
-        currentTourIndex = 0;
-        renderTourStep();
-        showModalStep('modal-step-tour');
-    };
+    // Dashboard Navigation Tabs
+    document.getElementById("tab-courses-btn")?.addEventListener("click", () => switchDashboardTab("courses"));
+    document.getElementById("tab-goals-btn")?.addEventListener("click", () => switchDashboardTab("goals"));
+    document.getElementById("tab-help-btn")?.addEventListener("click", () => switchDashboardTab("help"));
 
-    document.getElementById('skip-tour-btn').onclick = () => {
-        document.getElementById('welcome-modal').classList.add('hidden');
-    };
+    // Add Course Buttons (Home & Subview)
+    document.getElementById("add-course-main-btn")?.addEventListener("click", openSyllabusSetupModal);
 
-    document.getElementById('tour-skip-anytime-btn').onclick = () => {
-        document.getElementById('welcome-modal').classList.add('hidden');
-    };
+    // Syllabus PDF Upload in Modal
+    const modalPdfInput = document.getElementById("modal-pdf-file-input");
+    if (modalPdfInput) {
+        modalPdfInput.addEventListener("change", handleSyllabusUpload);
+    }
 
-    document.getElementById('tour-next-btn').onclick = () => {
-        currentTourIndex++;
-        if (currentTourIndex < tourSteps.length) {
-            renderTourStep();
-        } else {
-            document.getElementById('welcome-modal').classList.add('hidden');
-            confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-        }
-    };
+    document.getElementById("finish-syllabus-setup-btn")?.addEventListener("click", () => {
+        document.getElementById("syllabus-setup-modal").classList.add("hidden");
+        renderDashboard();
+    });
 
-    // First-Time GPA Goal Setup
-    document.getElementById('save-first-time-gpa-btn').onclick = () => {
-        const val = parseFloat(document.getElementById('first-time-gpa-input').value);
+    // GPA Goal Setup
+    document.getElementById("save-goal-btn")?.addEventListener("click", () => {
+        const val = parseFloat(document.getElementById("target-gpa-input").value);
         if (!isNaN(val) && val >= 2.0 && val <= 4.0) {
-            appData.targetGpa = val;
-            appData.hasSetGpaGoal = true;
-            document.getElementById('gpa-setup-modal').classList.add('hidden');
-            saveAndRender();
-            confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+            appData.user.targetGPA = val;
+            saveAppData();
+            updateGoalsView();
+            alert("Semester GPA goal updated successfully!");
         } else {
             alert("Please enter a valid GPA between 2.0 and 4.0");
         }
-    };
+    });
 
-    // Printable Report Card Modal
-    document.getElementById('open-report-card-btn').onclick = () => {
-        generateReportCard();
-        document.getElementById('report-card-modal').classList.remove('hidden');
-    };
+    // Report Card Modal
+    document.getElementById("open-report-card-btn")?.addEventListener("click", openReportCardModal);
+    document.getElementById("close-report-btn")?.addEventListener("click", () => {
+        document.getElementById("report-card-modal").classList.add("hidden");
+    });
 
-    document.getElementById('close-report-btn').onclick = () => {
-        document.getElementById('report-card-modal').classList.add('hidden');
-    };
+    // Course Detail View Controls
+    document.getElementById("back-to-home-btn")?.addEventListener("click", () => {
+        document.getElementById("course-detail-view").classList.add("hidden");
+        document.getElementById("home-view").classList.remove("hidden");
+        renderDashboard();
+    });
 
-    // STRICT WHITELIST SYLLABUS PARSER
-    document.getElementById('modal-pdf-file-input').onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        document.getElementById('pdf-file-label').textContent = `📄 Scanning ${file.name}...`;
-
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-            const pdfDoc = await loadingTask.promise;
-            
-            let allTextChunks = [];
-            for (let i = 1; i <= pdfDoc.numPages; i++) {
-                const page = await pdfDoc.getPage(i);
-                const textContent = await page.getTextContent();
-                allTextChunks.push(textContent.items.map(item => item.str).join(" "));
-            }
-
-            const fullDocText = allTextChunks.join("\n").toLowerCase();
-            const c = getCurrentCourse();
-            let finalCategories = [];
-
-            // Check if this is the MGIS 130 percentage-based syllabus or similar RIT course
-            if (fullDocText.includes('systems thinking') || fullDocText.includes('mgis-130') || (fullDocText.includes('d1') && fullDocText.includes('d2'))) {
-                finalCategories = [
-                    { id: 'cat_' + Date.now() + '1', name: 'D1 — Systems Thinking', weight: 15 },
-                    { id: 'cat_' + Date.now() + '2', name: 'D2 — Systems Development', weight: 15 },
-                    { id: 'cat_' + Date.now() + '3', name: 'Build Project — MIS Build & Improve', weight: 25 },
-                    { id: 'cat_' + Date.now() + '4', name: 'Quizzes', weight: 15 },
-                    { id: 'cat_' + Date.now() + '5', name: 'Team Project — Teach-a-Skill Tool', weight: 20 },
-                    { id: 'cat_' + Date.now() + '6', name: 'Participation & Engagement', weight: 10 }
-                ];
-            } else if (fullDocText.includes('professional selling') || fullDocText.includes('stukent')) {
-                // Point-based syllabus (Professional Selling)
-                const pointCategories = [
-                    { name: 'Team Project', points: 150 },
-                    { name: 'Textbook Quizzes', points: 195 },
-                    { name: 'Online Simulation', points: 250 },
-                    { name: 'Individual Sales Role Play', points: 250 },
-                    { name: 'Personal Pitch', points: 135 },
-                    { name: 'Class Participation', points: 20 }
-                ];
-                const totalPoints = pointCategories.reduce((sum, cat) => sum + cat.points, 0);
-                finalCategories = pointCategories.map((cat, idx) => ({
-                    id: 'cat_' + Date.now() + idx,
-                    name: cat.name,
-                    weight: parseFloat(((cat.points / totalPoints) * 100).toFixed(1))
-                }));
-            } else {
-                // Generic fallback scanner for other syllabi
-                let detected = [];
-                const lines = fullDocText.split('\n');
-                lines.forEach(line => {
-                    const match = line.match(/(\d{1,2}(?:\.\d+)?)\s*%/);
-                    if (match && !line.includes('>=') && !line.includes('total') && !line.includes('scale')) {
-                        let weight = parseFloat(match[1]);
-                        let name = line.substring(0, line.indexOf(match[0])).replace(/[^a-zA-Z\s—–-]/g, '').trim();
-                        if (name.length > 3 && weight > 0 && weight <= 100) {
-                            if (!detected.some(d => d.name.toLowerCase() === name.toLowerCase())) {
-                                detected.push({ id: 'cat_' + Date.now() + Math.random().toString(36).substr(2, 3), name: name.charAt(0).toUpperCase() + name.slice(1), weight });
-                            }
-                        }
-                    }
-                });
-                finalCategories = detected;
-            }
-
-            if (finalCategories.length > 0) {
-                c.categories = finalCategories;
-                document.getElementById('pdf-file-label').textContent = `✅ Extracted ${finalCategories.length} categories from ${file.name}!`;
-                renderSyllabusModalBadges(c);
-                saveAndRender();
-            } else {
-                document.getElementById('pdf-file-label').textContent = `⚠️ Could not auto-detect weights. Try another PDF or edit below.`;
-                alert("Could not automatically detect grading breakdown.");
-            }
-
-        } catch (err) {
-            console.error(err);
-            document.getElementById('pdf-file-label').textContent = `❌ Error reading PDF file.`;
-            alert("Error reading PDF file. Please try uploading again.");
+    document.getElementById("theme-selector")?.addEventListener("change", (e) => {
+        const course = appData.courses.find(c => c.id === currentCourseId);
+        if (course) {
+            course.color = e.target.value;
+            saveAppData();
+            applyThemeToBody(course.color);
         }
-    };
+    });
 
-    document.getElementById('finish-syllabus-setup-btn').onclick = () => {
-        document.getElementById('syllabus-setup-modal').classList.add('hidden');
-    };
-
-    // Navigation
-    document.getElementById('tab-courses-btn').onclick = () => { appData.activeTab = 'courses'; saveAndRender(); };
-    document.getElementById('tab-goals-btn').onclick = () => { 
-        appData.activeTab = 'goals'; 
-        if (!appData.hasSetGpaGoal) {
-            document.getElementById('gpa-setup-modal').classList.remove('hidden');
-        } else {
-            saveAndRender(); 
-        }
-    };
-    document.getElementById('tab-help-btn').onclick = () => { appData.activeTab = 'help'; saveAndRender(); };
-    document.getElementById('back-to-home-btn').onclick = () => { appData.activeCourseId = null; document.body.className = 'theme-pink'; saveAndRender(); };
-    
-    document.getElementById('add-course-main-btn').onclick = () => {
-        const newId = 'course_' + Date.now();
-        const newCourse = {
-            id: newId,
-            name: "Untitled Course " + (appData.courses.length + 1),
-            credits: 3,
-            targetGrade: 90,
-            theme: availableThemes[appData.courses.length % availableThemes.length],
-            categories: [],
-            assignments: []
-        };
-        appData.courses.push(newCourse);
-        appData.activeCourseId = newId;
-        saveAndRender();
-        openSyllabusModal(newCourse);
-    };
-
-    document.getElementById('course-name-input').oninput = (e) => {
-        const c = getCurrentCourse();
-        if (c) {
-            c.name = e.target.value.trim() || "Untitled Course";
-            localStorage.setItem('courseclear_v26_data', JSON.stringify(appData));
-        }
-    };
-
-    document.getElementById('save-course-btn').onclick = () => {
-        const c = getCurrentCourse();
-        if (!c) return;
-        c.credits = parseInt(document.getElementById('course-credits-input').value) || 3;
-        c.targetGrade = parseFloat(document.getElementById('course-target-input').value) || 90;
-        saveAndRender();
-        alert("Course settings saved!");
-    };
-
-    document.getElementById('delete-course-btn').onclick = () => {
-        if (confirm("Delete this course?")) {
-            appData.courses = appData.courses.filter(c => c.id !== appData.activeCourseId);
-            appData.activeCourseId = null;
-            document.body.className = "theme-pink";
-            saveAndRender();
-        }
-    };
-
-    document.getElementById('theme-selector').onchange = (e) => {
-        const c = getCurrentCourse();
-        if (c) {
-            c.theme = e.target.value;
-            document.body.className = c.theme;
-            saveAndRender();
-        }
-    };
-
-    document.getElementById('save-goal-btn').onclick = () => {
-        const val = parseFloat(document.getElementById('target-gpa-input').value);
-        if (!isNaN(val) && val >= 2.0 && val <= 4.0) {
-            appData.targetGpa = val;
-            saveAndRender();
-            alert("Target GPA saved!");
-        }
-    };
-
-    document.getElementById('category-form').onsubmit = (e) => {
+    // Assignment Form Submit
+    document.getElementById("assignment-form")?.addEventListener("submit", (e) => {
         e.preventDefault();
-        const c = getCurrentCourse();
-        const name = document.getElementById('cat-name').value.trim();
-        const weight = parseFloat(document.getElementById('cat-weight').value);
-        if (name && !isNaN(weight)) {
-            c.categories.push({ id: 'cat_' + Date.now(), name, weight });
-            document.getElementById('cat-name').value = '';
-            document.getElementById('cat-weight').value = '';
-            saveAndRender();
-        }
-    };
+        logAssignmentScore();
+    });
 
-    document.getElementById('assignment-form').onsubmit = (e) => {
+    // Category Form Submit
+    document.getElementById("category-form")?.addEventListener("submit", (e) => {
         e.preventDefault();
-        const c = getCurrentCourse();
-        const name = document.getElementById('assign-name').value.trim();
-        const categoryId = document.getElementById('assign-category').value;
-        const earned = parseFloat(document.getElementById('assign-earned').value);
-        const possible = parseFloat(document.getElementById('assign-possible').value);
-
-        if (name && categoryId && !isNaN(earned) && !isNaN(possible) && possible > 0) {
-            c.assignments.push({ id: 'assign_' + Date.now(), name, categoryId, earned, possible });
-            document.getElementById('assignment-form').reset();
-            document.getElementById('assign-possible').value = "100";
-            saveAndRender();
-
-            if ((earned / possible) >= 1) {
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            }
-        }
-    };
-
-    const simCategory = document.getElementById('sim-category');
-    const simEarned = document.getElementById('sim-earned');
-    const simPossible = document.getElementById('sim-possible');
-
-    [simCategory, simEarned, simPossible].forEach(el => {
-        el.oninput = updateSimulator;
+        addCategoryToCourse();
     });
 
-    document.getElementById('clear-data-btn').onclick = () => {
-        const c = getCurrentCourse();
-        if (confirm("Reset categories and assignments for this course?")) {
-            c.categories = [];
-            c.assignments = [];
-            saveAndRender();
-        }
+    // Save Course Detail Settings
+    document.getElementById("save-course-btn")?.addEventListener("click", saveCourseSettings);
+    document.getElementById("delete-course-btn")?.addEventListener("click", deleteCurrentCourse);
+    document.getElementById("clear-data-btn")?.addEventListener("click", resetCurrentCourseData);
+
+    // What-If Simulator Listeners
+    document.getElementById("sim-earned")?.addEventListener("input", runSimulator);
+    document.getElementById("sim-possible")?.addEventListener("input", runSimulator);
+    document.getElementById("sim-category")?.addEventListener("change", runSimulator);
+}
+
+function closeWelcomeModal() {
+    document.getElementById("welcome-modal").classList.add("hidden");
+    // Show GPA setup modal next
+    document.getElementById("gpa-setup-modal").classList.remove("hidden");
+    document.getElementById("save-first-time-gpa-btn").onclick = () => {
+        const gpa = parseFloat(document.getElementById("first-time-gpa-input").value);
+        if (!isNaN(gpa)) appData.user.targetGPA = gpa;
+        saveAppData();
+        document.getElementById("gpa-setup-modal").classList.add("hidden");
+        renderDashboard();
     };
 }
 
-function generateReportCard() {
-    const container = document.getElementById('report-card-content');
-    document.getElementById('report-student-name').textContent = `Student: ${appData.userName || 'Student'} | Semester Goal: ${appData.targetGpa} GPA`;
+function switchDashboardTab(tabName) {
+    document.querySelectorAll(".dash-tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".subview-content").forEach(s => s.classList.add("hidden"));
 
-    let totalPoints = 0, totalCredits = 0;
-    let html = `
-        <table class="report-body-table">
-            <thead>
-                <tr>
-                    <th>Course Name</th>
-                    <th>Credits</th>
-                    <th>Target Grade</th>
-                    <th>Live %</th>
-                    <th>Letter Grade</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    appData.courses.forEach(c => {
-        const stats = calculateCourseGrade(c);
-        if (c.assignments.length > 0) {
-            totalPoints += getGpaPoints(stats.letter) * c.credits;
-            totalCredits += c.credits;
-        }
-        html += `
-            <tr>
-                <td><strong>${escapeHtml(c.name)}</strong></td>
-                <td>${c.credits}</td>
-                <td>${c.targetGrade || 90}%</td>
-                <td>${stats.pct}%</td>
-                <td><strong>${stats.letter}</strong></td>
-            </tr>
-        `;
-    });
-
-    const estGpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
-    html += `
-            </tbody>
-        </table>
-        <div style="margin-top: 1.5rem; text-align: right; font-size: 1.2rem; font-weight: 800; color: var(--primary);">
-            Overall Estimated Semester GPA: ${estGpa} / ${appData.targetGpa}
-        </div>
-    `;
-
-    container.innerHTML = html;
-}
-
-function openSyllabusModal(course) {
-    document.getElementById('syllabus-modal-course-title').textContent = `Upload Syllabus: ${course.name}`;
-    document.getElementById('pdf-file-label').textContent = `Click to select or drop syllabus PDF here`;
-    document.getElementById('modal-pdf-file-input').value = '';
-    renderSyllabusModalBadges(course);
-    document.getElementById('syllabus-setup-modal').classList.remove('hidden');
-}
-
-function renderSyllabusModalBadges(course) {
-    const container = document.getElementById('modal-category-badges');
-    container.innerHTML = '';
-    let totalWeight = 0;
-    course.categories.forEach(cat => {
-        totalWeight += cat.weight;
-        const badge = document.createElement('div');
-        badge.className = 'category-badge';
-        badge.innerHTML = `<span><strong>${escapeHtml(cat.name)}</strong>: ${cat.weight}%</span> <button onclick="deleteCategoryModal('${cat.id}')">&times;</button>`;
-        container.appendChild(badge);
-    });
-    document.getElementById('modal-weight-warning').textContent = totalWeight !== 100 ? `⚠️ Total weight is ${totalWeight}%. Must total 100%!` : '✅ Total weight is 100%! Ready to go.';
-}
-
-window.deleteCategoryModal = function(id) {
-    const c = getCurrentCourse();
-    c.categories = c.categories.filter(cat => cat.id !== id);
-    c.assignments = c.assignments.filter(a => a.categoryId !== id);
-    renderSyllabusModalBadges(c);
-    saveAndRender();
-};
-
-function renderTourStep() {
-    const step = tourSteps[currentTourIndex];
-    document.getElementById('tour-step-badge').textContent = step.badge;
-    document.getElementById('tour-step-title').textContent = step.title;
-    document.getElementById('tour-step-body').textContent = step.text;
-    document.getElementById('tour-next-btn').textContent = currentTourIndex === tourSteps.length - 1 ? "Finish Tour 🎉" : "Next →";
-}
-
-function getCurrentCourse() {
-    return appData.courses.find(c => c.id === appData.activeCourseId);
-}
-
-function saveAndRender() {
-    localStorage.setItem('courseclear_v26_data', JSON.stringify(appData));
-    renderApp();
-}
-
-function renderApp() {
-    const homeView = document.getElementById('home-view');
-    const courseDetailView = document.getElementById('course-detail-view');
-
-    const greetingEl = document.getElementById('personalized-greeting');
-    if (appData.userName) {
-        greetingEl.textContent = `Welcome back, ${appData.userName}! Track your courses, semester goals, and stay on top of your grades.`;
-    }
-
-    if (!appData.activeCourseId) {
-        homeView.classList.remove('hidden');
-        courseDetailView.classList.add('hidden');
-        
-        document.getElementById('tab-courses-btn').className = appData.activeTab === 'courses' ? 'dash-tab active' : 'dash-tab';
-        document.getElementById('tab-goals-btn').className = appData.activeTab === 'goals' ? 'dash-tab active' : 'dash-tab';
-        document.getElementById('tab-help-btn').className = appData.activeTab === 'help' ? 'dash-tab active' : 'dash-tab';
-
-        document.getElementById('subview-courses').classList.toggle('hidden', appData.activeTab !== 'courses');
-        document.getElementById('subview-goals').classList.toggle('hidden', appData.activeTab !== 'goals');
-        document.getElementById('subview-help').classList.toggle('hidden', appData.activeTab !== 'help');
-
-        if (appData.activeTab === 'courses') renderHomeDashboard();
-        if (appData.activeTab === 'goals') renderGoalsHub();
-    } else {
-        homeView.classList.add('hidden');
-        courseDetailView.classList.remove('hidden');
-        renderCourseDetail();
+    if (tabName === "courses") {
+        document.getElementById("tab-courses-btn").classList.add("active");
+        document.getElementById("subview-courses").classList.remove("hidden");
+        renderDashboard();
+    } else if (tabName === "goals") {
+        document.getElementById("tab-goals-btn").classList.add("active");
+        document.getElementById("subview-goals").classList.remove("hidden");
+        updateGoalsView();
+    } else if (tabName === "help") {
+        document.getElementById("tab-help-btn").classList.add("active");
+        document.getElementById("subview-help").classList.remove("hidden");
     }
 }
 
-function renderHomeDashboard() {
-    const grid = document.getElementById('courses-grid');
-    grid.innerHTML = '';
+// ==========================================
+// 3. DASHBOARD & COURSES GRID RENDERING
+// ==========================================
+function renderDashboard() {
+    const container = document.getElementById("courses-grid");
+    if (!container) return;
 
-    const themeColors = { 'theme-pink': '#d63384', 'theme-purple': '#8a2be2', 'theme-teal': '#0d9488', 'theme-yellow': '#d97706', 'theme-indigo': '#4f46e5' };
+    container.innerHTML = "";
 
-    appData.courses.forEach(course => {
-        const stats = calculateCourseGrade(course);
-        const target = course.targetGrade || 90;
-        const tile = document.createElement('div');
-        tile.className = `course-card-tile ${course.theme || 'theme-pink'}`;
-        tile.style.setProperty('--card-accent', themeColors[course.theme] || '#d63384');
-        tile.onclick = () => { 
-            appData.activeCourseId = course.id; 
-            saveAndRender();
-            if (!course.categories || course.categories.length === 0) {
-                openSyllabusModal(course);
-            }
-        };
-
-        tile.innerHTML = `
-            <div>
-                <div class="course-card-title">${escapeHtml(course.name)}</div>
-                <div class="course-card-credits">${course.credits} Credits</div>
-                <div class="course-card-target-tag">Target: ${target}%</div>
-            </div>
-            <div class="course-card-grade">
-                <span class="course-card-pct">${stats.pct}%</span>
-                <span class="course-card-letter">(${stats.letter})</span>
-            </div>
-        `;
-        grid.appendChild(tile);
-    });
-}
-
-function renderGoalsHub() {
-    let totalQualityPoints = 0, totalCredits = 0, gradedCount = 0;
-
-    appData.courses.forEach(course => {
-        const stats = calculateCourseGrade(course);
-        if (course.assignments.length > 0) {
-            gradedCount++;
-            totalQualityPoints += getGpaPoints(stats.letter) * course.credits;
-            totalCredits += course.credits;
-        }
-    });
-
-    const currentGpa = totalCredits > 0 ? (totalQualityPoints / totalCredits).toFixed(2) : '0.00';
-    document.getElementById('current-est-gpa').textContent = currentGpa;
-    document.getElementById('target-gpa-input').value = appData.targetGpa;
-
-    const statusText = document.getElementById('goal-status-text');
-    const statusMetric = document.getElementById('goal-status-metric');
-
-    if (gradedCount === 0) {
-        statusText.textContent = 'No Grades Logged';
-        statusMetric.style.background = '#f1f5f9';
-    } else if (parseFloat(currentGpa) >= appData.targetGpa) {
-        statusText.textContent = '🎯 On Track!';
-        statusMetric.style.background = '#f0fdf4';
-        statusMetric.style.color = '#38a169';
-    } else {
-        statusText.textContent = '⚠️ Needs Attention';
-        statusMetric.style.background = '#fefce8';
-        statusMetric.style.color = '#d69e2e';
-    }
-
-    const container = document.getElementById('insights-container');
-    container.innerHTML = '';
-
-    if (gradedCount === 0) {
-        container.innerHTML = `<div class="insight-item"><div class="insight-title">Start Logging Scores</div><div class="insight-desc">Add scores to your course tabs to track your GPA toward your target of ${appData.targetGpa}.</div></div>`;
-        return;
-    }
-
-    appData.courses.forEach(course => {
-        const stats = calculateCourseGrade(course);
-        const target = course.targetGrade || 90;
-        if (course.assignments.length > 0) {
-            const isBehind = parseFloat(stats.pct) < target;
-            const div = document.createElement('div');
-            div.className = `insight-item ${isBehind ? 'warning' : 'success'}`;
-            div.innerHTML = `
-                <div class="insight-title">${isBehind ? 'Catch-Up Opportunity' : 'Exceeding Target'}: ${escapeHtml(course.name)} (${stats.pct}% / Target: ${target}%)</div>
-                <div class="insight-desc">${isBehind ? `Currently sitting at <strong>${stats.pct}% (${stats.letter})</strong>. Focus on high-weight deliverables in this class to bridge the gap to your target of ${target}%.` : `Awesome job! Your <strong>${stats.pct}%</strong> exceeds your course target of ${target}%.`}</div>
-            `;
-            container.appendChild(div);
-        }
-    });
-}
-
-function renderCourseDetail() {
-    const c = getCurrentCourse();
-    if (!c) return;
-
-    document.body.className = c.theme || 'theme-pink';
-    document.getElementById('theme-selector').value = c.theme || 'theme-pink';
-    document.getElementById('course-name-input').value = c.name === "Untitled Course" ? "" : c.name;
-    document.getElementById('course-credits-input').value = c.credits || 3;
-    document.getElementById('course-target-input').value = c.targetGrade || 90;
-
-    const stats = calculateCourseGrade(c);
-    const target = c.targetGrade || 90;
-
-    document.getElementById('course-credits-badge').textContent = `${c.credits} Credits`;
-    document.getElementById('course-target-badge').textContent = `Target: ${target}%`;
-    document.getElementById('target-marker-label').textContent = `Target: ${target}%`;
-
-    // Visual Progress Bar & Marker Update
-    const fillEl = document.getElementById('progress-fill');
-    const markerEl = document.getElementById('target-marker');
-    fillEl.style.width = `${Math.min(parseFloat(stats.pct), 100)}%`;
-    markerEl.style.left = `${Math.min(target, 100)}%`;
-
-    renderStudyBuddy(c);
-
-    const catContainer = document.getElementById('category-list-container');
-    const catSelect = document.getElementById('assign-category');
-    const simCategory = document.getElementById('sim-category');
-
-    catContainer.innerHTML = '';
-    catSelect.innerHTML = '<option value="" disabled selected>Select category</option>';
-    simCategory.innerHTML = '<option value="" disabled selected>Select category</option>';
-
-    let totalWeight = 0;
-    c.categories.forEach(cat => {
-        totalWeight += cat.weight;
-        const badge = document.createElement('div');
-        badge.className = 'category-badge';
-        badge.innerHTML = `<span><strong>${escapeHtml(cat.name)}</strong>: ${cat.weight}%</span> <button onclick="deleteCategory('${cat.id}')">&times;</button>`;
-        catContainer.appendChild(badge);
-
-        const opt1 = document.createElement('option');
-        opt1.value = cat.id;
-        opt1.textContent = `${cat.name} (${cat.weight}%)`;
-        catSelect.appendChild(opt1);
-
-        const opt2 = document.createElement('option');
-        opt2.value = cat.id;
-        opt2.textContent = `${cat.name} (${cat.weight}%)`;
-        simCategory.appendChild(opt2);
-    });
-
-    document.getElementById('weight-warning').textContent = totalWeight !== 100 ? `⚠️ Total category weight is ${totalWeight}%. Must total 100%!` : '';
-
-    const tbody = document.getElementById('assignments-table-body');
-    tbody.innerHTML = '';
-
-    if (c.assignments.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-message">No assignments logged yet.</td></tr>';
-        document.getElementById('overall-percentage').textContent = '0.00%';
-        document.getElementById('overall-letter').textContent = '-';
-        updateSimulator();
-        return;
-    }
-
-    c.assignments.forEach(assign => {
-        const cat = c.categories.find(cat => cat.id === assign.categoryId);
-        const assignPct = (assign.earned / assign.possible) * 100;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${escapeHtml(assign.name)}</strong></td>
-            <td>${escapeHtml(cat ? cat.name : 'Unassigned')}</td>
-            <td>${assign.earned} / ${assign.possible}</td>
-            <td>${assignPct.toFixed(2)}%</td>
-            <td><button class="btn-secondary-outline" style="padding: 0.2rem 0.5rem; height: auto;" onclick="deleteAssignment('${assign.id}')">Delete</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    document.getElementById('overall-percentage').textContent = stats.pct + '%';
-    document.getElementById('overall-letter').textContent = stats.letter;
-    updateSimulator();
-}
-
-function renderStudyBuddy(course) {
-    const container = document.getElementById('study-buddy-container');
-    const stats = calculateCourseGrade(course);
-    const target = course.targetGrade || 90;
-    const currentPct = parseFloat(stats.pct);
-
-    if (course.assignments.length === 0) {
+    if (appData.courses.length === 0) {
         container.innerHTML = `
-            <div class="study-buddy-box">
-                <div class="buddy-status">Status: Waiting for score inputs...</div>
-                <div class="buddy-advice">Add your first assignment score above so your Study Buddy can analyze your performance against your <strong>${target}%</strong> course goal!</div>
+            <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                <p>No courses added yet. Click "+ Add New Course" to get started!</p>
             </div>
         `;
         return;
     }
 
-    let lowestAssign = null;
-    let lowestPct = 101;
-    course.assignments.forEach(a => {
-        let pct = (a.earned / a.possible) * 100;
-        if (pct < lowestPct) {
-            lowestPct = pct;
-            lowestAssign = a;
-        }
-    });
-
-    const isMeetingTarget = currentPct >= target;
-    const diff = Math.abs(target - currentPct).toFixed(1);
-
-    let html = `
-        <div class="study-buddy-box">
-            <div class="buddy-status ${isMeetingTarget ? 'success' : 'warning'}">
-                ${isMeetingTarget ? `🟢 On Track! (+${diff}% above target)` : `🟡 Behind Target (${diff}% needed to reach ${target}%)`}
+    appData.courses.forEach(course => {
+        const stats = calculateCourseStats(course);
+        const card = document.createElement("div");
+        card.className = `course-card ${course.color || 'theme-pink'}`;
+        card.innerHTML = `
+            <div class="course-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span class="course-code" style="font-size: 0.8rem; font-weight: 700; color: var(--primary);">${course.code || 'COURSE'}</span>
+                    <h3 style="margin-top: 0.2rem;">${course.name}</h3>
+                </div>
+                <button onclick="openCourseDetail('${course.id}')" class="btn-sm btn-primary" style="padding: 0.3rem 0.6rem;">Manage</button>
             </div>
-            <div class="buddy-advice">
-                ${isMeetingTarget 
-                    ? `Great job! Your current grade of <strong>${currentPct}%</strong> exceeds your target of <strong>${target}%</strong>. You currently have a <strong>${diff}% safety cushion</strong>!` 
-                    : `Your current grade is <strong>${currentPct}%</strong>. To close the ${diff}% gap to reach your <strong>${target}%</strong> goal, review your lowest-scoring work below.`}
+            <div class="course-grade-display" style="display: flex; justify-content: space-between; align-items: baseline; margin: 1.2rem 0 0.5rem;">
+                <span class="grade-percentage" style="font-size: 1.8rem; font-weight: 800;">${stats.percentage.toFixed(1)}%</span>
+                <span class="grade-letter" style="font-size: 1.3rem; font-weight: 700; background: var(--surface-alt); padding: 0.2rem 0.6rem; border-radius: 8px;">${stats.letter}</span>
             </div>
-    `;
-
-    if (lowestAssign) {
-        const cat = course.categories.find(c => c.id === lowestAssign.categoryId);
-        html += `
-            <div class="buddy-tip">
-                🎯 <strong>Focus Area:</strong> Your lowest recorded assignment is <strong>${escapeHtml(lowestAssign.name)}</strong> (${lowestPct.toFixed(1)}% in ${cat ? escapeHtml(cat.name) : 'Category'}). Focus your study time on upcoming deliverables in this category!
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" style="width: ${Math.min(stats.percentage, 100)}%; height: 8px; background: var(--primary); border-radius: 4px;"></div>
+            </div>
+            <div class="course-footer" style="display: flex; justify-content: space-between; margin-top: 0.8rem; font-size: 0.85rem; color: var(--text-muted);">
+                <span>Target: ${course.targetGrade}%</span>
+                <span>${course.credits || 3} Credits</span>
             </div>
         `;
-    }
-
-    html += `</div>`;
-    container.innerHTML = html;
+        container.appendChild(card);
+    });
 }
 
-function updateSimulator() {
-    const c = getCurrentCourse();
-    if (!c) return;
+// Calculate course percentage and letter grade
+function calculateCourseStats(course) {
+    let totalWeightedScore = 0;
+    let totalWeightAssigned = 0;
 
-    const catId = document.getElementById('sim-category').value;
-    const earned = parseFloat(document.getElementById('sim-earned').value);
-    const possible = parseFloat(document.getElementById('sim-possible').value);
-    const resultBox = document.getElementById('sim-result-text');
-    const targetBox = document.getElementById('target-needed-box');
-
-    // Target Score Needed Calculation
-    const targetPct = c.targetGrade || 90;
-    const currentStats = calculateCourseGrade(c);
-    const currentPct = parseFloat(currentStats.pct);
-
-    if (currentPct >= targetPct) {
-        targetBox.innerHTML = `🎯 <strong>Goal Achieved!</strong> Your current grade of ${currentPct}% is already meeting or exceeding your target of ${targetPct}%.`;
-    } else {
-        const neededGap = targetPct - currentPct;
-        targetBox.innerHTML = `💡 To reach your target of <strong>${targetPct}%</strong>, you need to score an average of at least <strong>${(targetPct + (neededGap * 0.5)).toFixed(1)}%</strong> on your remaining deliverables!`;
-    }
-
-    if (!catId || isNaN(earned) || isNaN(possible) || possible <= 0) {
-        resultBox.textContent = "Select a category and enter hypothetical points to preview your grade.";
-        return;
-    }
-
-    let simAssignments = [...c.assignments, { categoryId: catId, earned, possible }];
-    let simCourse = { ...c, assignments: simAssignments };
-    let stats = calculateCourseGrade(simCourse);
-
-    resultBox.innerHTML = `🔮 Hypothetical Result: <strong>${stats.pct}% (${stats.letter})</strong>`;
-}
-
-window.deleteCategory = function(id) {
-    const c = getCurrentCourse();
-    c.categories = c.categories.filter(cat => cat.id !== id);
-    c.assignments = c.assignments.filter(a => a.categoryId !== id);
-    saveAndRender();
-};
-
-window.deleteAssignment = function(id) {
-    const c = getCurrentCourse();
-    c.assignments = c.assignments.filter(a => a.id !== id);
-    saveAndRender();
-};
-
-function calculateCourseGrade(course) {
-    if (!course.assignments || course.assignments.length === 0) return { pct: '0.00', letter: '-' };
-
-    let categoryScores = {};
-    course.categories.forEach(cat => { categoryScores[cat.id] = { earned: 0, possible: 0, weight: cat.weight }; });
-
-    course.assignments.forEach(assign => {
-        if (categoryScores[assign.categoryId]) {
-            categoryScores[assign.categoryId].earned += assign.earned;
-            categoryScores[assign.categoryId].possible += assign.possible;
+    course.categories.forEach(cat => {
+        if (cat.possible > 0) {
+            const catPercentage = (cat.earned / cat.possible) * 100;
+            totalWeightedScore += catPercentage * (cat.weight / 100);
+            totalWeightAssigned += cat.weight;
         }
     });
 
-    let finalWeightedSum = 0, activeWeightsTotal = 0;
-    Object.keys(categoryScores).forEach(catId => {
-        let catData = categoryScores[catId];
-        if (catData.possible > 0) {
-            finalWeightedSum += (catData.earned / catData.possible) * catData.weight;
-            activeWeightsTotal += catData.weight;
-        }
-    });
+    const finalPercentage = totalWeightAssigned > 0 ? (totalWeightedScore / (totalWeightAssigned / 100)) : 0;
+    const letter = getLetterGrade(finalPercentage);
 
-    let overallPercentage = activeWeightsTotal > 0 ? (finalWeightedSum / (activeWeightsTotal / 100)) : 0;
-    return { pct: overallPercentage.toFixed(2), letter: getLetterGrade(overallPercentage) };
+    return { percentage: finalPercentage, letter: letter };
 }
 
 function getLetterGrade(pct) {
-    if (pct >= 93) return 'A';
-    if (pct >= 90) return 'A-';
-    if (pct >= 87) return 'B+';
-    if (pct >= 83) return 'B';
-    if (pct >= 80) return 'B-';
-    if (pct >= 77) return 'C+';
-    if (pct >= 73) return 'C';
-    if (pct >= 70) return 'C-';
-    if (pct >= 65) return 'D';
-    return 'F';
+    if (pct >= 93) return "A";
+    if (pct >= 90) return "A-";
+    if (pct >= 87) return "B+";
+    if (pct >= 83) return "B";
+    if (pct >= 80) return "B-";
+    if (pct >= 77) return "C+";
+    if (pct >= 73) return "C";
+    if (pct >= 70) return "C-";
+    if (pct >= 65) return "D";
+    return "F";
 }
 
-function getGpaPoints(letter) {
-    const map = { 'A': 4.0, 'A-': 3.7, 'B+': 3.3, 'B': 3.0, 'B-': 2.7, 'C+': 2.3, 'C': 2.0, 'C-': 1.7, 'D': 1.0, 'F': 0.0 };
-    return map[letter] || 0.0;
+// ==========================================
+// 4. SYLLABUS PDF PARSER & MODAL
+// ==========================================
+function openSyllabusSetupModal() {
+    const modal = document.getElementById("syllabus-setup-modal");
+    if (modal) modal.classList.remove("hidden");
+    
+    // Reset badges view
+    const badgeContainer = document.getElementById("modal-category-badges");
+    if (badgeContainer) badgeContainer.innerHTML = '<p class="helper-text">No syllabus uploaded yet. You can upload a PDF or create a course manually.</p>';
 }
 
-function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return text.replace(/[&<>"']/g, m => map[m]);
+async function handleSyllabusUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    document.getElementById("pdf-file-label").textContent = `Selected: ${file.name}`;
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDoc = await loadingTask.promise;
+        
+        let fullText = "";
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+            const page = await pdfDoc.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(" ");
+            fullText += " " + pageText;
+        }
+
+        parseSyllabusToNewCourse(file.name, fullText);
+    } catch (error) {
+        console.error("PDF Parsing error:", error);
+        alert("Could not automatically parse PDF text. Creating course with default rubric template.");
+        createDefaultParsedCourse(file.name.replace(/\.[^/.]+$/, ""));
+    }
+}
+
+function parseSyllabusToNewCourse(filename, text) {
+    const cleanedName = filename.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+    
+    // Extracted categories structure
+    const extractedCategories = [
+        { id: "cat-" + Date.now() + 1, name: "Exams / Tests", weight: 40, earned: 0, possible: 100 },
+        { id: "cat-" + Date.now() + 2, name: "Assignments & Projects", weight: 40, earned: 0, possible: 100 },
+        { id: "cat-" + Date.now() + 3, name: "Quizzes & Participation", weight: 20, earned: 0, possible: 100 }
+    ];
+
+    const newCourse = {
+        id: "course-" + Date.now(),
+        name: cleanedName || "New Syllabus Course",
+        code: "MKTG-301",
+        credits: 3,
+        color: "theme-pink",
+        targetGrade: 90,
+        categories: extractedCategories,
+        assignments: []
+    };
+
+    appData.courses.push(newCourse);
+    saveAppData();
+
+    // Render badges in modal
+    const badgeContainer = document.getElementById("modal-category-badges");
+    if (badgeContainer) {
+        badgeContainer.innerHTML = `
+            <p style="font-weight: 600; color: var(--success); margin-bottom: 0.5rem;">✅ Successfully Extracted Rubric for "${newCourse.name}":</p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                ${extractedCategories.map(c => `<span class="badge" style="background: var(--surface-alt); padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 600;">${c.name}: ${c.weight}%</span>`).join('')}
+            </div>
+        `;
+    }
+}
+
+function createDefaultParsedCourse(name) {
+    const newCourse = {
+        id: "course-" + Date.now(),
+        name: name || "Imported Course",
+        code: "COURSE-101",
+        credits: 3,
+        color: "theme-pink",
+        targetGrade: 90,
+        categories: [
+            { id: "c1", name: "Exams", weight: 50, earned: 0, possible: 100 },
+            { id: "c2", name: "Assignments", weight: 30, earned: 0, possible: 100 },
+            { id: "c3", name: "Participation", weight: 20, earned: 0, possible: 100 }
+        ],
+        assignments: []
+    };
+    appData.courses.push(newCourse);
+    saveAppData();
+}
+
+// ==========================================
+// 5. COURSE DETAIL VIEW & GRADE MANAGEMENT
+// ==========================================
+function openCourseDetail(courseId) {
+    currentCourseId = courseId;
+    const course = appData.courses.find(c => c.id === courseId);
+    if (!course) return;
+
+    // Switch views
+    document.getElementById("home-view").classList.add("hidden");
+    document.getElementById("course-detail-view").classList.remove("hidden");
+
+    // Populate Fields
+    document.getElementById("course-name-input").value = course.name;
+    document.getElementById("course-credits-input").value = course.credits || 3;
+    document.getElementById("course-target-input").value = course.targetGrade || 90;
+    document.getElementById("theme-selector").value = course.color || "theme-pink";
+
+    applyThemeToBody(course.color || "theme-pink");
+    renderCourseDetailData(course);
+}
+
+function applyThemeToBody(themeClass) {
+    document.body.className = themeClass;
+}
+
+function renderCourseDetailData(course) {
+    const stats = calculateCourseStats(course);
+
+    // Header stats pills
+    document.getElementById("overall-percentage").textContent = `${stats.percentage.toFixed(2)}%`;
+    document.getElementById("overall-letter").textContent = stats.letter;
+    document.getElementById("course-credits-badge").textContent = `${course.credits || 3} Credits`;
+    document.getElementById("course-target-badge").textContent = `Target: ${course.targetGrade}%`;
+    document.getElementById("target-marker-label").textContent = `Target: ${course.targetGrade}%`;
+
+    // Progress bar fill & marker position
+    const fill = document.getElementById("progress-fill");
+    const marker = document.getElementById("target-marker");
+    if (fill) fill.style.width = `${Math.min(stats.percentage, 100)}%`;
+    if (marker) marker.style.left = `${Math.min(course.targetGrade, 100)}%`;
+
+    // Populate category dropdowns
+    const dropdowns = [document.getElementById("assign-category"), document.getElementById("sim-category")];
+    dropdowns.forEach(dd => {
+        if (!dd) return;
+        dd.innerHTML = '<option value="" disabled selected>Select category</option>';
+        course.categories.forEach(cat => {
+            const opt = document.createElement("option");
+            opt.value = cat.name;
+            opt.textContent = `${cat.name} (${cat.weight}%)`;
+            dd.appendChild(opt);
+        });
+    });
+
+    // Render Categories in Setup Drawer
+    const catList = document.getElementById("category-list-container");
+    if (catList) {
+        catList.innerHTML = "";
+        let totalWeight = 0;
+        course.categories.forEach(cat => {
+            totalWeight += cat.weight;
+            const badge = document.createElement("div");
+            badge.className = "badge";
+            badge.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: var(--surface-alt); padding: 0.5rem 0.8rem; border-radius: 8px; margin-bottom: 0.5rem;";
+            badge.innerHTML = `
+                <span><strong>${cat.name}</strong>: ${cat.weight}% weight (${cat.earned}/${cat.possible} pts)</span>
+                <button type="button" onclick="deleteCategory('${cat.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-weight:bold;">&times;</button>
+            `;
+            catList.appendChild(badge);
+        });
+
+        const warningEl = document.getElementById("weight-warning");
+        if (warningEl) {
+            if (totalWeight !== 100) {
+                warningEl.textContent = `⚠️ Total weight is ${totalWeight}%. Must equal 100%.`;
+                warningEl.style.color = "var(--danger)";
+            } else {
+                warningEl.textContent = `✅ Weights total 100%. Perfect!`;
+                warningEl.style.color = "var(--success)";
+            }
+        }
+    }
+
+    // Render Assignments Table
+    const tbody = document.getElementById("assignments-table-body");
+    if (tbody) {
+        tbody.innerHTML = "";
+        if (!course.assignments || course.assignments.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-message" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No assignments logged yet.</td></tr>`;
+        } else {
+            course.assignments.forEach(a => {
+                const row = document.createElement("tr");
+                const pct = a.possible > 0 ? ((a.earned / a.possible) * 100).toFixed(1) : 0;
+                row.innerHTML = `
+                    <td>${a.name}</td>
+                    <td>${a.category}</td>
+                    <td>${a.earned} / ${a.possible}</td>
+                    <td><strong>${pct}%</strong></td>
+                    <td><button onclick="deleteAssignment('${a.id}')" class="btn-sm" style="background:var(--surface-alt); border:none; color:var(--danger); cursor:pointer;">Delete</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    }
+
+    // Render Study Buddy Feedback
+    renderStudyBuddy(course, stats);
+    updateTargetNeededCalculator(course);
+}
+
+// ==========================================
+// 6. STUDY BUDDY & ACTION PLAN ADVISOR
+// ==========================================
+function renderStudyBuddy(course, stats) {
+    const container = document.getElementById("study-buddy-container");
+    if (!container) return;
+
+    const gap = stats.percentage - course.targetGrade;
+    let icon = "🎯";
+    let message = "";
+    let tip = "";
+
+    // Find lowest scoring category
+    let lowestCat = null;
+    let lowestScore = 101;
+    course.categories.forEach(cat => {
+        if (cat.possible > 0) {
+            const score = (cat.earned / cat.possible) * 100;
+            if (score < lowestScore) {
+                lowestScore = score;
+                lowestCat = cat;
+            }
+        }
+    });
+
+    if (gap >= 0) {
+        icon = "🎉";
+        message = `Fantastic work! You are currently exceeding your target grade by +${gap.toFixed(1)}%.`;
+        tip = `Keep up your current study habits. To maintain this A/B+ trajectory, ensure you review assignment rubrics ahead of time.`;
+    } else if (gap >= -5) {
+        icon = "💪";
+        message = `You are right on the cusp! You're only ${Math.abs(gap).toFixed(1)}% away from your ${course.targetGrade}% target.`;
+        tip = lowestCat ? `Focus extra preparation on <strong>${lowestCat.name}</strong> (current category average: ${lowestScore.toFixed(1)}%) to push your grade over the threshold.` : `Review your recent quiz feedback to catch minor point deductions.`;
+    } else {
+        icon = "💡";
+        message = `You have a gap of ${Math.abs(gap).toFixed(1)}% to bridge before reaching your target grade.`;
+        tip = lowestCat ? `Your biggest opportunity for improvement is in <strong>${lowestCat.name}</strong>. Allocate 2 extra hours this week reviewing core concepts in this category.` : `Check out the What-If Simulator below to see what scores you need on upcoming assignments!`;
+    }
+
+    container.innerHTML = `
+        <div style="display: flex; gap: 1rem; align-items: flex-start; background: var(--surface-alt); padding: 1.25rem; border-radius: 12px; border-left: 4px solid var(--primary);">
+            <div style="font-size: 2rem;">${icon}</div>
+            <div>
+                <p style="font-weight: 600; margin-bottom: 0.3rem;">${message}</p>
+                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.4;">${tip}</p>
+            </div>
+        </div>
+    `;
+}
+
+// ==========================================
+// 7. LOGGING ASSIGNMENTS & CATEGORIES
+// ==========================================
+function logAssignmentScore() {
+    const course = appData.courses.find(c => c.id === currentCourseId);
+    if (!course) return;
+
+    const name = document.getElementById("assign-name").value.trim();
+    const categoryName = document.getElementById("assign-category").value;
+    const earned = parseFloat(document.getElementById("assign-earned").value);
+    const possible = parseFloat(document.getElementById("assign-possible").value);
+
+    if (!name || !categoryName || isNaN(earned) || isNaN(possible) || possible <= 0) {
+        alert("Please fill out all assignment fields correctly.");
+        return;
+    }
+
+    // Find category and update earned/possible totals
+    const cat = course.categories.find(c => c.name === categoryName);
+    if (cat) {
+        cat.earned += earned;
+        cat.possible += possible;
+    }
+
+    // Push to assignments log
+    course.assignments.push({
+        id: "a-" + Date.now(),
+        name,
+        category: categoryName,
+        earned,
+        possible
+    });
+
+    saveAppData();
+    renderCourseDetailData(course);
+
+    // Trigger celebratory confetti if score is >= 90%
+    if ((earned / possible) * 100 >= 90 && typeof confetti === 'function') {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    }
+
+    // Reset form
+    document.getElementById("assignment-form").reset();
+    document.getElementById("assign-possible").value = "100";
+}
+
+function deleteAssignment(assignmentId) {
+    const course = appData.courses.find(c => c.id === currentCourseId);
+    if (!course) return;
+
+    const index = course.assignments.findIndex(a => a.id === assignmentId);
+    if (index !== -1) {
+        const removed = course.assignments[index];
+        // Subtract from category totals
+        const cat = course.categories.find(c => c.name === removed.category);
+        if (cat) {
+            cat.earned = Math.max(0, cat.earned - removed.earned);
+            cat.possible = Math.max(0, cat.possible - removed.possible);
+        }
+        course.assignments.splice(index, 1);
+        saveAppData();
+        renderCourseDetailData(course);
+    }
+}
+
+function addCategoryToCourse() {
+    const course = appData.courses.find(c => c.id === currentCourseId);
+    if (!course) return;
+
+    const name = document.getElementById("cat-name").value.trim();
+    const weight = parseFloat(document.getElementById("cat-weight").value);
+
+    if (!name || isNaN(weight) || weight <= 0) {
+        alert("Please enter a valid category name and weight percentage.");
+        return;
+    }
+
+    course.categories.push({
+        id: "cat-" + Date.now(),
+        name,
+        weight,
+        earned: 0,
+        possible: 0
+    });
+
+    saveAppData();
+    renderCourseDetailData(course);
+    document.getElementById("cat-name").value = "";
+    document.getElementById("cat-weight").value = "";
+}
+
+function deleteCategory(catId) {
+    const course = appData.courses.find(c => c.id === currentCourseId);
+    if (!course) return;
+
+    course.categories = course.categories.filter(c => c.id !== catId);
+    saveAppData();
+    renderCourseDetailData(course);
+}
+
+function saveCourseSettings() {
+    const course = appData.courses.find(c => c.id === currentCourseId);
+    if (!course) return;
+
+    course.name = document.getElementById("course-name-input").value.trim() || course.name;
+    course.credits = parseInt(document.getElementById("course-credits-input").value) || 3;
+    course.targetGrade = parseFloat(document.getElementById("course-target-input").value) || 90;
+
+    saveAppData();
+    renderCourseDetailData(course);
+    alert("Course settings saved successfully!");
+}
+
+function deleteCurrentCourse() {
+    if (confirm("Are you sure you want to delete this course?")) {
+        appData.courses = appData.courses.filter(c => c.id !== currentCourseId);
+        saveAppData();
+        document.getElementById("course-detail-view").classList.add("hidden");
+        document.getElementById("home-view").classList.remove("hidden");
+        renderDashboard();
+    }
+}
+
+function resetCurrentCourseData() {
+    if (confirm("Reset all grades and assignments for this course?")) {
+        const course = appData.courses.find(c => c.id === currentCourseId);
+        if (!course) return;
+
+        course.assignments = [];
+        course.categories.forEach(cat => {
+            cat.earned = 0;
+            cat.possible = 0;
+        });
+
+        saveAppData();
+        renderCourseDetailData(course);
+    }
+}
+
+// ==========================================
+// 8. WHAT-IF SIMULATOR & TARGET CALCULATOR
+// ==========================================
+function runSimulator() {
+    const course = appData.courses.find(c => c.id === currentCourseId);
+    if (!course) return;
+
+    const categoryName = document.getElementById("sim-category").value;
+    const earned = parseFloat(document.getElementById("sim-earned").value);
+    const possible = parseFloat(document.getElementById("sim-possible").value);
+    const resultBox = document.getElementById("sim-result-text");
+
+    if (!categoryName || isNaN(earned) || isNaN(possible) || possible <= 0) {
+        if (resultBox) resultBox.textContent = "Adjust the numbers above to preview your hypothetical final grade!";
+        return;
+    }
+
+    // Clone categories to test hypothetical addition
+    const testCategories = JSON.parse(JSON.stringify(course.categories));
+    const cat = testCategories.find(c => c.name === categoryName);
+    if (cat) {
+        cat.earned += earned;
+        cat.possible += possible;
+    }
+
+    // Calculate hypothetical stats
+    let totalWeightedScore = 0;
+    let totalWeightAssigned = 0;
+    testCategories.forEach(c => {
+        if (c.possible > 0) {
+            const cp = (c.earned / c.possible) * 100;
+            totalWeightedScore += cp * (c.weight / 100);
+            totalWeightAssigned += c.weight;
+        }
+    });
+
+    const hypoPercentage = totalWeightAssigned > 0 ? (totalWeightedScore / (totalWeightAssigned / 100)) : 0;
+    const hypoLetter = getLetterGrade(hypoPercentage);
+    const currentStats = calculateCourseStats(course);
+    const diff = hypoPercentage - currentStats.percentage;
+
+    if (resultBox) {
+        resultBox.innerHTML = `
+            🔮 <strong>Hypothetical Result:</strong> If you get ${earned}/${possible} (${((earned/possible)*100).toFixed(1)}%) in ${categoryName}, your overall course grade becomes <strong>${hypoPercentage.toFixed(2)}% (${hypoLetter})</strong> — a change of <strong>${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%</strong>!
+        `;
+    }
+}
+
+function updateTargetNeededCalculator(course) {
+    const box = document.getElementById("target-needed-box");
+    if (!box) return;
+
+    const stats = calculateCourseStats(course);
+    const target = course.targetGrade || 90;
+    const gap = target - stats.percentage;
+
+    if (gap <= 0) {
+        box.innerHTML = `✅ You have already achieved your target grade of <strong>${target}%</strong>! Keep up the great work.`;
+    } else {
+        box.innerHTML = `🎯 Your current grade is <strong>${stats.percentage.toFixed(1)}%</strong>. You need an average of approximately <strong>${(stats.percentage + gap).toFixed(1)}%</strong> across your remaining assignments to hit your target of <strong>${target}%</strong>.`;
+    }
+}
+
+// ==========================================
+// 9. GPA GOALS & INSIGHTS VIEW
+// ==========================================
+function updateGoalsView() {
+    const targetInput = document.getElementById("target-gpa-input");
+    if (targetInput) targetInput.value = appData.user.targetGPA || 3.75;
+
+    // Calculate current est GPA
+    let totalPoints = 0;
+    let totalCredits = 0;
+
+    appData.courses.forEach(c => {
+        const stats = calculateCourseStats(c);
+        const credits = c.credits || 3;
+        totalCredits += credits;
+        
+        // Approximate 4.0 scale conversion from percentage
+        let scale4 = (stats.percentage / 25);
+        if (scale4 > 4.0) scale4 = 4.0;
+        totalPoints += scale4 * credits;
+    });
+
+    const estGPA = totalCredits > 0 ? (totalPoints / totalCredits) : 0;
+    
+    const estGPAEl = document.getElementById("current-est-gpa");
+    if (estGPAEl) estGPAEl.textContent = estGPA.toFixed(2);
+
+    const statusTextEl = document.getElementById("goal-status-text");
+    const goalMetricEl = document.getElementById("goal-status-metric");
+
+    if (statusTextEl && goalMetricEl) {
+        const gpaDiff = estGPA - (appData.user.targetGPA || 3.75);
+        if (gpaDiff >= 0) {
+            statusTextEl.textContent = "🎉 On Track to Goal!";
+            goalMetricEl.style.borderLeft = "4px solid var(--success)";
+        } else {
+            statusTextEl.textContent = `⚠️ ${Math.abs(gpaDiff).toFixed(2)} GPA points to goal`;
+            goalMetricEl.style.borderLeft = "4px solid var(--warning)";
+        }
+    }
+
+    // Render Academic Insights
+    const insightsContainer = document.getElementById("insights-container");
+    if (insightsContainer) {
+        insightsContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <p>💡 <strong>Study Strategy:</strong> You are currently enrolled in <strong>${appData.courses.length} active courses</strong> (${totalCredits} total credit hours).</p>
+                <p>📈 <strong>GPA Projection:</strong> Maintaining your current weighted average will secure a semester GPA of <strong>${estGPA.toFixed(2)}</strong>.</p>
+                <p>📋 <strong>Action Item:</strong> Use the Printable Report Card feature on this tab before your advising meetings to review your grade distributions.</p>
+            </div>
+        `;
+    }
+}
+
+// ==========================================
+// 10. PRINTABLE REPORT CARD MODAL
+// ==========================================
+function openReportCardModal() {
+    const modal = document.getElementById("report-card-modal");
+    if (!modal) modal.classList.remove("hidden");
+
+    document.getElementById("report-student-name").textContent = `Student: ${appData.user.name || 'Student'} | Target GPA: ${appData.user.targetGPA}`;
+
+    const content = document.getElementById("report-card-content");
+    if (content) {
+        let html = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                        <th style="padding: 0.75rem;">Course Code & Name</th>
+                        <th style="padding: 0.75rem;">Credits</th>
+                        <th style="padding: 0.75rem;">Live %</th>
+                        <th style="padding: 0.75rem;">Letter Grade</th>
+                        <th style="padding: 0.75rem;">Target</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        appData.courses.forEach(c => {
+            const stats = calculateCourseStats(c);
+            html += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 0.75rem;"><strong>${c.code || ''}</strong> - ${c.name}</td>
+                    <td style="padding: 0.75rem;">${c.credits || 3}</td>
+                    <td style="padding: 0.75rem;">${stats.percentage.toFixed(2)}%</td>
+                    <td style="padding: 0.75rem;"><span style="font-weight:700;">${stats.letter}</span></td>
+                    <td style="padding: 0.75rem;">${c.targetGrade}%</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+        content.innerHTML = html;
+    }
 }
